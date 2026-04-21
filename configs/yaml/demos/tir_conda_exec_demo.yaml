@@ -1,0 +1,7 @@
+extends: ../base.yaml
+methods:
+  - name: tir
+method_configs:
+  tir:
+    exec_python_mode: conda
+    exec_conda_env: cs6493_topic1

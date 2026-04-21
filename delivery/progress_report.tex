@@ -1,0 +1,215 @@
+\documentclass[11pt]{article}
+\usepackage[margin=1in]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath}
+\usepackage{lmodern}
+\usepackage{hyperref}
+\usepackage{booktabs}
+\usepackage{enumitem}
+\usepackage{setspace}
+
+\setstretch{1.08}
+\setlength{\parskip}{0.4em}
+\setlength{\parindent}{0pt}
+
+\title{CS6493 NLP Group Project Progress Report}
+\author{Topic 1: Mathematical Reasoning Ability of Large Language Models}
+\date{April 22, 2026}
+
+\begin{document}
+\maketitle
+
+\textbf{Student Name:} Chen Baizheng \\
+\textbf{Student ID:} 72510800
+
+\section{Project Positioning and Goal}
+
+This project studies mathematical reasoning of small open-weight LLMs under prompt-based strategies, with focus on two dimensions: (1) answer correctness and (2) reasoning efficiency.
+
+The second dimension is our main extension beyond standard assignment requirements. We aim to build an evaluation protocol that compares methods not only by accuracy but also by reasoning quality and stopping behavior.
+
+Our plan follows three principles:
+\begin{enumerate}[leftmargin=*]
+    \item assignment compliance first,
+    \item controlled innovation second,
+    \item behavior-aware evaluation third.
+\end{enumerate}
+
+\section{Experimental Scope}
+
+\subsection{Models}
+\begin{itemize}[leftmargin=*]
+    \item \texttt{Qwen/Qwen2.5-Math-1.5B-Instruct}
+    \item \texttt{deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B}
+\end{itemize}
+
+\subsection{Datasets}
+\begin{itemize}[leftmargin=*]
+    \item \texttt{HuggingFaceH4/MATH-500}
+    \item \texttt{openai/gsm8k}
+    \item \texttt{HuggingFaceH4/aime\_2024}
+\end{itemize}
+
+The current controlled setting uses 30 sampled items per dataset for progress-stage validation, with planned expansion in final runs.
+
+\subsection{Method Set}
+
+Required methods:
+\begin{itemize}[leftmargin=*]
+    \item CoT zero-shot
+    \item CoT few-shot
+    \item Self-Refine
+    \item Self-Consistency ($n = 5$)
+\end{itemize}
+
+Extended methods:
+\begin{itemize}[leftmargin=*]
+    \item TIR (Tool-Integrated Reasoning)
+    \item SR-SD-TIR (plan $\rightarrow$ solve-with-tools $\rightarrow$ reflect)
+\end{itemize}
+
+\section{Method Design Rationale}
+
+\subsection{Baseline methods: what each one tests}
+
+\begin{itemize}[leftmargin=*]
+    \item \textbf{CoT zero-shot}: reference baseline without demonstrations.
+    \item \textbf{CoT few-shot}: tests whether in-context exemplars improve structure and stability.
+    \item \textbf{Self-Refine}: tests whether second-pass self-critique corrects first-pass errors.
+    \item \textbf{Self-Consistency}: tests robustness gains from multi-sample voting.
+\end{itemize}
+
+These methods form a progression from single-pass reasoning to multi-pass and multi-sample aggregation.
+
+\subsection{Extension design: why TIR and SR-SD-TIR}
+
+\begin{itemize}[leftmargin=*]
+    \item \textbf{TIR}: introduces executable code plus execution feedback for arithmetic/symbolic verification.
+    \item \textbf{SR-SD-TIR}: introduces staged control (planning, solving, reflecting) to reduce wasted reasoning trajectories.
+\end{itemize}
+
+Our core hypothesis is that staged and tool-assisted methods can improve answer-efficiency behavior under the same model-size budget.
+
+\subsection{Comparison logic}
+
+Methods are compared under a shared protocol using correctness, response budget, answer-emergence signals, and over-reasoning indicators, rather than a single headline metric only.
+
+\section{Evaluation Metric Design (Key Focus)}
+
+\subsection{Core metrics (assignment-aligned)}
+\begin{itemize}[leftmargin=*]
+    \item Accuracy
+    \item Response length (tokens/chars)
+\end{itemize}
+
+\subsection{Behavior-aware metrics (our extension)}
+\begin{itemize}[leftmargin=*]
+    \item Reflection count
+    \item Answer count
+    \item First answer token index
+    \item Tail ratio (tokens generated after first answer / total tokens)
+\end{itemize}
+
+Interpretation: high answer count combined with high tail ratio often indicates repeated or unnecessary post-answer reasoning.
+
+\subsection{Composite score design in $[0,1]$}
+
+Per-sample score:
+\[
+\text{score}_i = c \cdot \text{answer\_factor}^{0.3} \cdot \text{length\_factor}^{0.4} \cdot \text{reflection\_factor}^{0.3}
+\]
+where $c \in \{0,1\}$ is a correctness gate and final score is clipped to $[0,1]$.
+
+Factor design:
+\begin{itemize}[leftmargin=*]
+    \item \textbf{length\_factor}: penalizes excessive length beyond reference budget.
+    \item \textbf{answer\_factor} $=$ count\_factor $\times$ tail\_factor:
+    \begin{itemize}[leftmargin=*]
+        \item count\_factor penalizes excessive answer repetitions beyond target $a^\star$,
+        \item tail\_factor penalizes excessive continuation after first answer.
+    \end{itemize}
+    \item \textbf{reflection\_factor}: encourages moderate reflection over both no-reflection and over-reflection.
+\end{itemize}
+
+Current default parameters:
+\begin{itemize}[leftmargin=*]
+    \item weights: answer $= 0.3$, length $= 0.4$, reflection $= 0.3$
+    \item $a^\star = 2$, $\tau_a = 2$
+    \item $r^\star = 2$, $\tau_r = 2$
+    \item $\rho^\star = 0.25$, $\tau_{tail} = 0.20$
+\end{itemize}
+
+\subsection{Planned statistical reporting}
+
+For each model-dataset-method group, we report:
+\begin{itemize}[leftmargin=*]
+    \item mean/median/mode of composite scores,
+    \item single-metric means,
+    \item per-question records for error analysis.
+\end{itemize}
+
+This two-level reporting supports macro comparison and qualitative diagnosis simultaneously.
+
+\section{Reproducibility and Fairness Controls}
+
+To ensure fair comparison:
+\begin{enumerate}[leftmargin=*]
+    \item shared datasets and fixed sample files,
+    \item consistent prompt-method interface,
+    \item YAML-managed method configurations,
+    \item shared evaluation and scoring protocol.
+\end{enumerate}
+
+Question consistency is guaranteed by fixed sampled JSONL files. As long as these files are unchanged, compared runs use identical question sets.
+
+\section{Progress Status}
+
+At this stage, the research protocol and metric framework are finalized. The remaining major workload is empirical execution at scale and final analysis writing.
+
+\subsection{Completed}
+\begin{itemize}[leftmargin=*]
+    \item method portfolio definition and comparison protocol,
+    \item metric and composite-score design,
+    \item evaluation output schema and summary strategy,
+    \item run configuration structure for controlled experiments.
+\end{itemize}
+
+\subsection{Ongoing / Next}
+\begin{itemize}[leftmargin=*]
+    \item full matrix execution (model $\times$ dataset $\times$ method),
+    \item sensitivity checks for key score parameters,
+    \item final comparative discussion with complete quantitative evidence.
+\end{itemize}
+
+\section{Next-Step Commitments}
+
+Before final submission:
+\begin{enumerate}[leftmargin=*]
+    \item complete required-method full runs,
+    \item run extension methods under matched conditions,
+    \item deliver full quantitative tables and interpretation,
+    \item conclude with trade-off analysis among correctness, efficiency, and reasoning behavior.
+\end{enumerate}
+
+\section{References}
+
+\begin{enumerate}[leftmargin=*]
+    \item Wei, J., Wang, X., Schuurmans, D., et al. (2022). Chain-of-thought prompting elicits reasoning in large language models. \textit{NeurIPS}.
+    \item Wang, X., Wei, J., Schuurmans, D., et al. (2022). Self-consistency improves chain of thought reasoning in language models. \textit{arXiv:2203.11171}.
+    \item Madaan, A., Tandon, N., Gupta, P., et al. (2023/2024). Self-Refine: Iterative refinement with self-feedback. \textit{NeurIPS}.
+    \item Zhou, D., Scharli, N., Hou, L., et al. (2022). Least-to-Most prompting enables complex reasoning in large language models. \textit{arXiv:2205.10625}.
+    \item Zhang, Z., Zhang, A., Li, M., Smola, A. (2022). Automatic chain of thought prompting in large language models. \textit{arXiv:2210.03493}.
+    \item Gou, Z., Shao, Z., Gong, Y., et al. (2023). ToRA: A tool-integrated reasoning agent for mathematical problem solving. \textit{arXiv:2309.17452}.
+    \item Shao, Z., Wang, P., Zhu, Q., et al. (2024). DeepSeekMath: Pushing the limits of mathematical reasoning in open language models. \textit{arXiv preprint}.
+    \item Cobbe, K., Kosaraju, V., Bavarian, M., et al. (2021). Training verifiers to solve math word problems. \textit{arXiv:2110.14168}.
+    \item Cobbe, K., et al. (2021). GSM8K: Grade school math 8K benchmark. \textit{arXiv:2110.14168}.
+    \item Hendrycks, D., et al. (2021). Measuring mathematical problem solving with the MATH dataset. \textit{NeurIPS}.
+    \item Lightman, H., Kosaraju, V., Burda, Y., et al. (2023). Let's verify step by step. \textit{arXiv:2305.20050}.
+    \item Shinn, N., Cassano, F., Berman, E., et al. (2023). Reflexion: Language agents with verbal reinforcement learning. \textit{arXiv preprint}.
+    \item Zhou, P., Madaan, A., Potharaju, S. P., et al. (2024). Self-Discover: Large language models self-compose reasoning structures. \textit{arXiv preprint}.
+    \item Team, HuggingFaceH4. (2024). MATH-500 dataset release.
+    \item Team, HuggingFaceH4. (2024). AIME 2024 dataset release.
+\end{enumerate}
+
+\end{document}

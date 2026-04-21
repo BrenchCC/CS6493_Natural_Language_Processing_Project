@@ -1,0 +1,97 @@
+run:
+  output_dir: results/raw
+  evaluated_dir: results/evaluated
+  summary_dir: results/summaries
+  num_workers: 4
+  micro_batch_size: 8
+
+vllm:
+  tensor_parallel_size: 1
+  dtype: auto
+  gpu_memory_utilization: 0.9
+  max_model_len: 4096
+  max_num_seqs: 16
+  trust_remote_code: true
+
+models:
+  - id: Qwen/Qwen2.5-Math-1.5B-Instruct
+  - id: deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B
+
+datasets:
+  - name: math500
+    sample_path: data/processed/math500_sample.jsonl
+    max_samples: 30
+  - name: gsm8k
+    sample_path: data/processed/gsm8k_sample.jsonl
+    max_samples: 30
+  - name: aime2024
+    sample_path: data/processed/aime2024_sample.jsonl
+    max_samples: 30
+
+methods:
+  - name: cot_zero
+  - name: cot_few_shot
+  - name: self_refine
+  - name: self_consistency
+  - name: tir
+  - name: sr_sd_tir
+
+method_configs:
+  cot_zero:
+    temperature: 0.0
+    top_p: 1.0
+    max_tokens: 1024
+  cot_few_shot:
+    temperature: 0.0
+    top_p: 1.0
+    max_tokens: 1024
+    few_shot_examples:
+      - question: If x + 3 = 7, find x.
+        answer: x = 4. Therefore the final answer is \\boxed{4}.
+  self_refine:
+    temperature: 0.2
+    top_p: 1.0
+    max_tokens: 1024
+  self_consistency:
+    temperature: 0.7
+    top_p: 1.0
+    max_tokens: 1024
+    n_samples: 5
+  tir:
+    temperature: 0.0
+    top_p: 1.0
+    max_tokens: 1024
+    exec_timeout_sec: 8
+    exec_python_mode: current
+    exec_conda_env: ""
+  sr_sd_tir:
+    temperature: 0.2
+    top_p: 1.0
+    max_tokens: 1024
+    exec_timeout_sec: 8
+    exec_python_mode: current
+    exec_conda_env: ""
+
+scoring:
+  weights:
+    answer: 0.3
+    length: 0.4
+    reflection: 0.3
+  params:
+    a_star: 2
+    tau_a: 2
+    r_star: 2
+    tau_r: 2
+    rho_star: 0.25
+    tau_tail: 0.20
+    L_ref: 256
+    tau_d: 256
+  length_overrides:
+    - dataset: gsm8k
+      method: ""
+      L_ref: 200
+      tau_d: 200
+    - dataset: aime2024
+      method: ""
+      L_ref: 320
+      tau_d: 280
