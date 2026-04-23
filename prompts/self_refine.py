@@ -1,41 +1,31 @@
-"""
-Self-Refine prompting.
-Generates an initial solution, then iteratively critiques and refines it.
-"""
+"""Self-Refine prompting."""
 
 from .base import PromptMethod
 
 
 class SelfRefine(PromptMethod):
-    """
-    Self-Refine prompting.
+    """Solve, critique, and refine a solution iteratively."""
 
-    Three-phase process:
-    1. Solve: Generate an initial solution.
-    2. Critique: Identify errors or weaknesses in the solution.
-    3. Refine: Produce an improved solution based on the critique.
-    """
+    SOLVE_SYSTEM_PROMPT = """You are a careful mathematical reasoning assistant. Solve the problem step by step and present the final answer in \\boxed{}."""
 
-    SOLVE_TEMPLATE = """Solve the following math problem step by step. Show your reasoning clearly and put your final answer in \\boxed{{}}.
-
-Problem:
+    SOLVE_USER_TEMPLATE = """Problem:
 {problem}
 
-Please provide your solution:"""
+Please provide a complete step-by-step solution."""
 
-    CRITIQUE_TEMPLATE = """Review the following solution to a math problem. Identify any errors in reasoning, calculation mistakes, or logical flaws. Be specific about what is wrong and why.
+    CRITIQUE_SYSTEM_PROMPT = """You are a strict mathematical reviewer. Inspect the provided solution, identify reasoning or calculation errors, and explain them precisely."""
 
-Problem:
+    CRITIQUE_USER_TEMPLATE = """Problem:
 {problem}
 
 Solution to review:
 {solution}
 
-Please provide your critique:"""
+Please provide a concise but specific critique."""
 
-    REFINE_TEMPLATE = """Based on the critique below, improve the solution to the following math problem. Fix any identified errors and provide the corrected solution. Put your final answer in \\boxed{{}}.
+    REFINE_SYSTEM_PROMPT = """You are a mathematical editor. Revise the solution using the critique, fix all identified issues, and present the corrected final answer in \\boxed{}."""
 
-Problem:
+    REFINE_USER_TEMPLATE = """Problem:
 {problem}
 
 Original solution:
@@ -44,7 +34,7 @@ Original solution:
 Critique:
 {critique}
 
-Please provide the improved solution:"""
+Please provide the improved step-by-step solution."""
 
     def __init__(self, config: dict = None):
         super().__init__(config)
@@ -55,37 +45,81 @@ Please provide the improved solution:"""
         return "self_refine"
 
     @property
-    def is_multi_pass(self) -> bool:
-        return True
+    def run_mode(self) -> str:
+        return "multi_pass"
 
-    def format(self, problem: str, **kwargs) -> str:
-        """
-        Format initial solve prompt.
+    def build_system_prompt(self, problem: str, **kwargs) -> str:
+        return str(kwargs.get("system_prompt") or self.config.get("system_prompt") or self.SOLVE_SYSTEM_PROMPT)
 
-        Args:
-            problem: The math problem text.
-        """
-        return self.SOLVE_TEMPLATE.format(problem=problem)
+    def build_user_prompt(self, problem: str, **kwargs) -> str:
+        """Format the initial solve prompt."""
+        return self.SOLVE_USER_TEMPLATE.format(problem = problem)
+
+    def _build_stage_messages(self, system_prompt: str, user_prompt: str) -> list[dict[str, str]]:
+        messages = []
+        if system_prompt:
+            messages.append({"role": "system", "content": system_prompt})
+        messages.append({"role": "user", "content": user_prompt})
+        return messages
 
     def format_critique(self, problem: str, solution: str) -> str:
-        """
-        Format critique request given problem and initial solution.
-
-        Args:
-            problem: The original math problem.
-            solution: The model's initial solution text.
-        """
-        return self.CRITIQUE_TEMPLATE.format(problem=problem, solution=solution)
+        """Format critique request given problem and initial solution."""
+        return self.CRITIQUE_USER_TEMPLATE.format(problem = problem, solution = solution)
 
     def format_refine(self, problem: str, solution: str, critique: str) -> str:
-        """
-        Format refinement request.
+        """Format refinement request."""
+        return self.REFINE_USER_TEMPLATE.format(problem = problem, solution = solution, critique = critique)
 
-        Args:
-            problem: The original math problem.
-            solution: The current solution text.
-            critique: The critique of the solution.
-        """
-        return self.REFINE_TEMPLATE.format(
-            problem=problem, solution=solution, critique=critique
-        )
+    def run(self, engine, sample, **kwargs):
+        problem = str(sample.get("question", ""))
+        steps = []
+        decode_strategy = self.decode_strategy()
+        if "enable_thinking" in kwargs:
+            decode_strategy["enable_thinking"] = kwargs.get("enable_thinking")
+        solve_messages = self.build_messages(problem = problem, sample = sample, **kwargs)
+        solve_outputs = engine.chat(messages = solve_messages, **decode_strategy)
+        current_solution = solve_outputs[0] if solve_outputs else ""
+        steps.append({"stage": "solve", "messages": solve_messages, "response": current_solution})
+
+        rounds = max(1, int(self.max_rounds))
+        for round_index in range(rounds):
+            critique_prompt = self.format_critique(problem = problem, solution = current_solution)
+            critique_messages = self._build_stage_messages(
+                system_prompt = self.CRITIQUE_SYSTEM_PROMPT,
+                user_prompt = critique_prompt,
+            )
+            critique_outputs = engine.chat(messages = critique_messages, **decode_strategy)
+            critique = critique_outputs[0] if critique_outputs else ""
+            steps.append(
+                {
+                    "stage": f"critique_{round_index + 1}",
+                    "messages": critique_messages,
+                    "response": critique,
+                }
+            )
+
+            refine_prompt = self.format_refine(problem = problem, solution = current_solution, critique = critique)
+            refine_messages = self._build_stage_messages(
+                system_prompt = self.REFINE_SYSTEM_PROMPT,
+                user_prompt = refine_prompt,
+            )
+            refine_outputs = engine.chat(messages = refine_messages, **decode_strategy)
+            current_solution = refine_outputs[0] if refine_outputs else ""
+            steps.append(
+                {
+                    "stage": f"refine_{round_index + 1}",
+                    "messages": refine_messages,
+                    "response": current_solution,
+                }
+            )
+
+        return {
+            "input_messages": solve_messages,
+            "raw_response": current_solution,
+            "final_response": self.post_process(current_solution, sample = sample, **kwargs),
+            "intermediate_outputs": steps,
+            "metadata": {
+                "run_mode": self.run_mode,
+                "max_refine_rounds": rounds,
+            },
+        }

@@ -1,3 +1,0 @@
-extends: ../base.yaml
-methods:
-  - name: sr_sd_tir

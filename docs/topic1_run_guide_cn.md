@@ -1,252 +1,373 @@
-# Topic1 运行指导（中文）
+# Topic 1 实验框架使用说明
 
-本指南用于本地运行 Topic1 的完整流程：推理、评估、汇总。
-当前约定是：
-- `scripts/` 只放下载脚本和运行用 `bash`。
-- 核心 Python 代码在 `infer_exp/` 与 `evaluation/`。
+本文档说明当前 Topic 1 实验框架的实际运行方式、结果目录结构、两个模型配置文件的用途，以及评估得分配置的含义。
 
-## 1. 目录与配置
-- 公共配置：`configs/yaml/base.yaml`
-- 方法 demo：`configs/yaml/demos/*.yaml`
-- 原始推理输出：`results/raw/`
-- 评估输出：`results/evaluated/`
-- 汇总输出：`results/summaries/`
+## 1. 运行前准备
 
-## 2. 先装依赖（必须）
+### 1.1 建议环境
+- 推荐直接使用已有 `conda` 环境：`llm_train`
+- 若环境缺少依赖，可执行：
 
-### 2.1 requirements 文件
-项目提供依赖文件：
-- `requirements.topic1.txt`（主入口，默认引用 `requirements.txt`）
-- `requirements.tir-exec.txt`（仅 TIR/SR-SD-TIR 代码执行依赖）
-
-核心包包括：
-- `vllm`
-- `datasets`
-- `PyYAML`
-- `huggingface_hub`
-- `sympy`（TIR 代码执行常用）
-- `numpy`
-- `scipy`
-
-### 2.2 Conda 安装命令（推荐）
 ```bash
-conda create -n cs6493_topic1 python=3.10 -y
-bash scripts/setup/install_requirements.sh cs6493_topic1 requirements.topic1.txt
+conda activate llm_train
+pip install -r requirements.txt
 ```
 
-### 2.3 非 Conda 安装命令
-```bash
-bash scripts/setup/install_requirements.sh
-```
+### 1.2 固定样本数据
+当前默认使用以下三份固定样本：
 
-### 2.4 仅安装 TIR 代码执行依赖
-Conda 模式（推荐）：
-```bash
-bash scripts/setup/install_tir_exec_requirements.sh cs6493_topic1 requirements.tir-exec.txt
-```
+- `data/processed/math500_sample.jsonl`
+- `data/processed/gsm8k_sample.jsonl`
+- `data/processed/aime2024_sample.jsonl`
 
-当前环境模式：
+若要重新抽样：
+
 ```bash
-bash scripts/setup/install_tir_exec_requirements.sh
+bash scripts/data/prepare_samples.sh 50 6493 data/processed
 ```
 
 说明：
-- `scripts/setup/install_requirements.sh` 第1个参数是 Conda 环境名（可空）。
-- 第2个参数是 requirements 文件路径，默认 `requirements.topic1.txt`。
-- `scripts/setup/install_tir_exec_requirements.sh` 参数形式相同，默认 `requirements.tir-exec.txt`。
+- `math500` 与 `gsm8k` 当前默认上限为 `50`
+- `aime2024` 当前默认上限为 `30`
 
-## 3. 下载模型（可选）
+---
+
+## 2. 配置文件说明
+
+### 2.1 基础配置
+- `configs/yaml/base.yaml`
+  - 同时包含两个模型
+  - 适合跑完整实验矩阵
+
+### 2.2 单模型配置
+- `configs/yaml/qwen_math.yaml`
+  - 只保留 `Qwen/Qwen2.5-Math-1.5B-Instruct`
+  - 适合单独跑 Qwen 系列实验
+- `configs/yaml/deepseek_r1_math.yaml`
+  - 只保留 `deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B`
+  - 适合单独跑 DeepSeek-R1 系列实验
+
+### 2.3 两个模型的思考模式差异
+
+#### `Qwen/Qwen2.5-Math-1.5B-Instruct`
+- 属于普通文本模型
+- 不依赖 `<think>` 通道
+- 通过 `cot_zero` / `cot_few_shot` / `self_refine` / `self_consistency` 这类 prompt 方法显式触发推理
+- 配置中表现为：
+  - `reasoning_mode: prompt_cot`
+  - `enable_thinking: null`
+  - `cannot_disable_thinking: false`
+
+#### `deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B`
+- 属于原生思考模型
+- 会输出 `<think> ... </think>` 风格思考内容
+- 当前按你的要求，默认视为**不能关闭思考**
+- 配置中表现为：
+  - `reasoning_mode: native_thinking`
+  - `enable_thinking: true`
+  - `cannot_disable_thinking: true`
+
+这两个配置都会写进运行摘要，方便后续分析时区分“提示推理模型”和“原生思考模型”。
+
+---
+
+## 3. 推荐运行方式
+
+### 3.1 跑单模型 + 单方法 + 3 数据集
+这是当前框架推荐的最小实验单元。
+
+#### 跑 Qwen + `cot_zero`
+
 ```bash
-bash scripts/setup/download_hf_assets.sh
+bash scripts/infer/run_single_model_all.sh configs/yaml/qwen_math.yaml "Qwen/Qwen2.5-Math-1.5B-Instruct" 50 "" cot_zero
 ```
 
-指定缓存目录：
+#### 跑 DeepSeek-R1 + `self_consistency`
+
 ```bash
-bash scripts/setup/download_hf_assets.sh models/hf_cache
+bash scripts/infer/run_single_model_all.sh configs/yaml/deepseek_r1_math.yaml "deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B" 30 "" self_consistency
 ```
 
-## 4. 准备固定样本（建议先做）
+参数说明：
+- 第 1 个参数：配置文件路径
+- 第 2 个参数：模型名
+- 第 3 个参数：样本上限覆盖值，传 `0` 表示使用 YAML 里的默认值
+- 第 4 个参数：数据集过滤，空字符串表示默认跑 `math500,gsm8k,aime2024`
+- 第 5 个参数：方法过滤，支持逗号分隔
+
+### 3.2 跑单模型 + 多方法
+
 ```bash
-bash scripts/data/prepare_samples.sh 30 6493 data/processed
+bash scripts/infer/run_single_model_all.sh configs/yaml/qwen_math.yaml "Qwen/Qwen2.5-Math-1.5B-Instruct" 50 "" cot_zero,cot_few_shot,self_refine
 ```
 
-参数含义：
-- 第1个参数：每个数据集抽样数量 `N`，默认 `30`
-- 第2个参数：随机种子 `SEED`，默认 `6493`
-- 第3个参数：输出目录 `OUTPUT_DIR`，默认 `data/processed`
+### 3.3 跑完整实验矩阵
 
-## 5. 单模型一键全数据集推理（核心脚本）
-
-你要的核心入口：
 ```bash
-bash scripts/infer/run_single_model_all.sh <CONFIG_YAML> <MODEL_ID> [MAX_SAMPLES] [ONLY_DATASETS] [ONLY_METHODS]
+bash scripts/infer/run_experiments.sh configs/yaml/base.yaml
 ```
 
-示例1：单模型跑全部数据集 + 全部方法
-```bash
-bash scripts/infer/run_single_model_all.sh configs/yaml/base.yaml Qwen/Qwen2.5-Math-1.5B-Instruct 30
-```
+该命令会读取 `base.yaml` 中的模型列表与方法列表，依次执行所有组合。
 
-示例2：只跑 `math500,gsm8k` 两个数据集
-```bash
-bash scripts/infer/run_single_model_all.sh configs/yaml/base.yaml Qwen/Qwen2.5-Math-1.5B-Instruct 30 math500,gsm8k
-```
+---
 
-示例3：只跑 `cot_zero,tir` 两种方法
-```bash
-bash scripts/infer/run_single_model_all.sh configs/yaml/base.yaml Qwen/Qwen2.5-Math-1.5B-Instruct 30 "" cot_zero,tir
-```
+## 4. 结果目录说明
 
-这个脚本会：
-- 固定只用你传入的一个模型；
-- 按数据集批次顺序跑；
-- 每个 `dataset x method` 生成对应 JSONL 结果到 `results/raw/`。
+当前所有结果都统一写在 `results/` 下。
 
-## 6. 常规推理入口（保留）
-```bash
-bash scripts/infer/run_experiments.sh configs/yaml/demos/tir_demo.yaml
-```
+### 4.1 完整推理结果
+- 目录：`results/raw/`
+- 文件内容：每条样本的完整推理结果 JSONL
+- 典型字段包括：
+  - `run_id`
+  - `model_name`
+  - `method_name`
+  - `dataset_name`
+  - `question`
+  - `gold_answer`
+  - `input_messages`
+  - `raw_response`
+  - `final_response`
+  - `intermediate_outputs`
+  - `metadata`
+  - `error`
 
-如果你要直接用 Conda 子进程执行 TIR 代码块，可用：
-```bash
-bash scripts/infer/run_experiments.sh configs/yaml/demos/tir_conda_exec_demo.yaml
-bash scripts/infer/run_experiments.sh configs/yaml/demos/sr_sd_tir_conda_exec_demo.yaml
-```
+这部分是**最完整的原始产物**，后续若要复查模型输出、分析思考链、统计特殊行为，优先看这里。
 
-说明：
-- 不需要启动 OpenAI 兼容服务。
-- 推理脚本会在内部直接初始化 `vllm.LLM`。
-- 并发策略为：单模型实例 + 线程池调度 + micro-batch 生成。
+### 4.2 逐样本评测结果
+- 目录：`results/evaluated/`
+- 文件内容：在 raw 基础上补充评测字段
+- 典型新增字段包括：
+  - `parsed_prediction`
+  - `accuracy`
+  - `response_length_tokens`
+  - `response_length_chars`
+  - `reflection_count`
+  - `answer_count`
+  - `first_answer_token_idx`
+  - `tail_ratio`
+  - `length_factor`
+  - `answer_factor`
+  - `reflection_factor`
+  - `score_i`
 
-## 7. 运行评估
+### 4.3 综合指标表
+- 目录：`results/summaries/`
+- 文件：`aggregate_scores.csv`
+
+该文件用于看**每个数据集和 overall 的综合聚合结果**，适合直接拿来做报告表格。
+
+### 4.4 单一指标统计表
+- 目录：`results/summaries/`
+- 文件：`single_metric_stats.csv`
+
+该文件按单个指标分别统计 `mean / min / max`，适合做更细的误差分析与作图。
+
+### 4.5 运行日志
+- 目录：`results/logs/`
+- 文件模式：`run_log__{run_id}__{model_alias}__{method}.log`
+
+运行时会有两份一致的日志输出：
+- 终端实时打印
+- `results/logs/` 下的 `.log` 文件持续追加保存
+
+为避免刷屏：
+- 不再输出逐样本成功日志
+- 推理阶段按数据集显示 `tqdm` 进度条
+- 评估阶段按结果文件显示 `tqdm` 进度条
+
+日志记录的内容包括：
+- run 开始
+- 引擎构建开始/结束
+- 数据集开始/结束
+- 单样本失败
+- raw 写盘开始/结束
+- 评估开始
+- summary 开始
+- run 完成
+
+### 4.6 运行摘要
+- 目录：`results/summaries/`
+- 文件模式：`run_summary__{run_id}__{model_alias}__{method}.json`
+
+该文件会集中记录：
+- 当前 run 的模型与方法
+- 每个数据集的聚合结果
+- overall 聚合结果
+- 产物文件路径
+- 模型思考模式设置
+
+---
+
+## 5. 评估与汇总命令
+
+### 5.1 单独执行评估
+
 ```bash
 bash scripts/eval/evaluate_runs.sh configs/yaml/base.yaml
 ```
 
-评估会为每条样本补充：
-- `accuracy`
-- `response_length_tokens` / `response_length_chars`
-- `reflection_count`
-- `answer_count`
-- `first_answer_token_idx`
-- `tail_ratio`
-- `length_factor` / `answer_factor` / `reflection_factor`
-- `score_i`
+说明：
+- 该命令会遍历 `results/raw/` 下的 JSONL
+- 对每个测试集文件做逐样本评测
+- 当前评测阶段支持**每个测试集文件内部多线程加速**
+- 线程数由 `run.eval_num_workers` 控制
 
-## 8. 运行汇总
+### 5.2 单独生成汇总
+
 ```bash
 bash scripts/eval/summarize_scores.sh configs/yaml/base.yaml
 ```
 
-汇总文件：
-- `results/summaries/aggregate_scores.csv`
-- `results/summaries/single_metric_stats.csv`
+---
 
-## 9. 参数怎么填写与调整（重点）
-编辑：`configs/yaml/base.yaml`
+## 6. 评分配置解释
 
-### 9.1 运行参数（`run`）
-- `output_dir`：原始输出目录
-- `evaluated_dir`：评估后输出目录
-- `summary_dir`：汇总表输出目录
-- `num_workers`：线程数，建议从 `2~4` 起步
-- `micro_batch_size`：批大小，OOM 时先降到 `2/4`
+评分配置位于 YAML 的 `scoring` 段，用来控制复合得分 `score_i` 的计算。
 
-### 9.2 vLLM 参数（`vllm`）
-- `tensor_parallel_size`：用几张卡填几（单卡填 `1`）
-- `gpu_memory_utilization`：显存占用比例，建议 `0.80~0.92`
-- `max_model_len`：上下文长度，显存不足时减小
-- `max_num_seqs`：并发序列数，显存不足时减小
-- `dtype`：通常 `auto`
+### 6.1 评分思想
+当前复合得分遵循一个原则：
 
-### 9.3 数据参数（`datasets`）
-- `name`：数据集别名
-- `sample_path`：固定样本 JSONL 路径（最关键）
-- `max_samples`：本次运行最多取前多少条
+- **先看是否答对**
+- 在答对前提下，再根据回答长度、答案信号次数、反思行为等进行衰减
 
-### 9.4 方法参数（`method_configs`）
-- 通用：`temperature`、`top_p`、`max_tokens`
-- `self_consistency`：`n_samples`
-- `tir/sr_sd_tir`：`exec_timeout_sec`
-- `tir/sr_sd_tir`：`exec_python_mode`（`current` 或 `conda`）
-- `tir/sr_sd_tir`：`exec_conda_env`（仅 `exec_python_mode = conda` 时生效）
+也就是说：
+- 如果题目答错，`score_i = 0`
+- 如果答对，得分会根据输出是否过长、是否多次重复答案、是否存在明显过度反思继续下降
 
-示例（让 TIR 在指定 Conda 环境中执行 python 代码块）：
+### 6.2 `weights`
+
+#### `weights.answer`
+- 控制“答案行为”这一项的权重
+- 主要对应：
+  - `answer_count`
+  - `tail_ratio`
+- 越大表示越重视“不要反复给答案、不要在给出答案后继续拖尾”
+
+#### `weights.length`
+- 控制回答长度惩罚的权重
+- 越大表示越偏好**更短、更克制**的回答
+
+#### `weights.reflection`
+- 控制反思行为惩罚的权重
+- 越大表示越敏感于“过度反思”或“反复自我检查”
+
+### 6.3 `params`
+
+#### `a_star`
+- 期望的答案信号次数上界
+- 如果 `answer_count` 超过这个值，就开始被惩罚
+
+#### `tau_a`
+- `answer_count` 惩罚衰减速度
+- 越小，超过 `a_star` 后掉分越快
+
+#### `r_star`
+- 期望的反思次数中心值
+- `reflection_count` 离这个值越远，惩罚越大
+
+#### `tau_r`
+- 反思惩罚衰减速度
+- 越小，对反思次数偏离越敏感
+
+#### `rho_star`
+- 答案出现后允许的拖尾比例阈值
+- 若 `tail_ratio` 高于该阈值，就说明模型给出答案后仍继续输出太多内容
+
+#### `tau_tail`
+- `tail_ratio` 惩罚衰减速度
+- 越小，答案后拖尾会被更严厉惩罚
+
+#### `L_ref`
+- 长度参考值
+- 当 `response_length_tokens` 超过它时，开始触发长度惩罚
+
+#### `tau_d`
+- 长度惩罚衰减速度
+- 越小，超过 `L_ref` 后掉分越快
+
+### 6.4 什么时候调这些参数
+
+#### 若你觉得模型输出太长
+- 优先调：
+  - 降低 `L_ref`
+  - 降低 `tau_d`
+  - 或提高 `weights.length`
+
+#### 若你觉得模型重复写答案太多
+- 优先调：
+  - 降低 `a_star`
+  - 降低 `tau_a`
+  - 或提高 `weights.answer`
+
+#### 若你觉得模型给出答案后还在继续啰嗦
+- 优先调：
+  - 降低 `rho_star`
+  - 降低 `tau_tail`
+
+#### 若你想弱化复合分，只更看重正确率
+- 可以把 `weights.answer / length / reflection` 调得更平缓
+- 或仅在分析阶段主要使用 `accuracy`
+
+---
+
+## 7. 多线程评测说明
+
+评测调用阶段当前已经支持多线程。
+
+配置项：
+
 ```yaml
-method_configs:
-  tir:
-    exec_timeout_sec: 8
-    exec_python_mode: conda
-    exec_conda_env: cs6493_topic1
-  sr_sd_tir:
-    exec_timeout_sec: 8
-    exec_python_mode: conda
-    exec_conda_env: cs6493_topic1
+run:
+  eval_num_workers: 4
 ```
 
-填写建议：
-- `exec_python_mode = current`：直接使用当前解释器（最快，环境最简单）。
-- `exec_python_mode = conda`：强制在指定 Conda 环境执行，避免默认环境缺包。
-- `exec_conda_env` 必须填真实环境名，否则执行反馈会出现 `config_error`。
+含义：
+- 对每个测试集对应的 raw JSONL 文件，在评测时开 `4` 个线程并发处理样本
+- 这只影响评测阶段，不影响模型推理阶段
 
 建议：
-- 先用小样本调通；
-- 再逐步增大 `max_samples`、`num_workers`、`micro_batch_size`。
+- 小规模实验：`2~4`
+- 中等规模实验：`4~8`
+- 若 CPU 紧张或出现上下文切换开销过大，可适当调小
 
-### 9.5 评分参数（`scoring`）
-当前默认：
-- 权重：`answer = 0.3, length = 0.4, reflection = 0.3`
-- `a_star = 2, tau_a = 2`
-- `r_star = 2, tau_r = 2`
-- `rho_star = 0.25, tau_tail = 0.20`
+---
 
-可在 `scoring.params` 中直接改。
+## 8. 一个常见工作流
 
-## 10. 如何保证“每次做的题都一样”（重点）
-你关心的是“题目集合一致”，不是“模型输出文本完全一致”。
+### 工作流 A：先跑 Qwen 主实验
 
-### 10.1 我采用的保证机制
-1. **先固定样本文件**：
-   - 用同一个命令生成一次：
-   ```bash
-   bash scripts/data/prepare_samples.sh 30 6493 data/processed
-   ```
-2. **后续推理不再抽样**：
-   - 推理只读取 `datasets[].sample_path` 指向的 JSONL；
-   - 只要这些文件不变，题目就不变。
-3. **固定读取上限**：
-   - `max_samples` 固定后，每次取的条数与顺序都一致。
-
-### 10.2 你的实际操作建议
-- 第一次抽样后，立即备份：
 ```bash
-cp -R data/processed data/processed_locked
+conda activate llm_train
+bash scripts/infer/run_single_model_all.sh configs/yaml/qwen_math.yaml "Qwen/Qwen2.5-Math-1.5B-Instruct" 50 "" cot_zero,cot_few_shot,self_refine,self_consistency
 ```
-- 在 `base.yaml` 中把 `sample_path` 改到 `data/processed_locked/*.jsonl`。
-- 后续不要再覆盖 `processed_locked`，即可长期保证题目一致。
 
-### 10.3 额外说明
-- 对于 `temperature > 0` 的方法（如 Self-Consistency），题目一样时，输出可能仍有随机性。
-- 若你还希望输出更稳定，可把对应方法的 `temperature` 设低或设为 `0`（会影响方法原始设定）。
+### 工作流 B：再跑 DeepSeek-R1 主实验
 
-## 11. 常见问题
-1. `ImportError: No module named vllm`
-- 先执行依赖安装（第2节）。
+```bash
+conda activate llm_train
+bash scripts/infer/run_single_model_all.sh configs/yaml/deepseek_r1_math.yaml "deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B" 30 "" cot_zero,cot_few_shot,self_refine,self_consistency
+```
 
-2. TIR 执行报 `sympy` 缺失
-- 执行依赖安装（`requirements.topic1.txt` 内已包含 `sympy`）。
+### 工作流 C：最后统一补汇总
 
-3. TIR 执行反馈出现 `config_error` 且提示 `exec_conda_env is empty`
-- 在 `method_configs.tir` 或 `method_configs.sr_sd_tir` 中填入：
-  - `exec_python_mode: conda`
-  - `exec_conda_env: <你的环境名>`
+```bash
+conda activate llm_train
+bash scripts/eval/evaluate_runs.sh configs/yaml/base.yaml
+bash scripts/eval/summarize_scores.sh configs/yaml/base.yaml
+```
 
-4. GPU 显存不足
-- 在 `configs/yaml/base.yaml` 调小：
-  - `vllm.max_model_len`
-  - `vllm.max_num_seqs`
-  - `run.micro_batch_size`
-  - `run.num_workers`
+---
 
-5. 数据文件不存在
-- 确认 `datasets[].sample_path` 指向存在的 JSONL 文件。
+## 9. 建议保留的核心产物
+
+如果后续要写报告，建议至少保留以下文件：
+
+- `results/raw/*.jsonl`：完整推理结果
+- `results/evaluated/*.jsonl`：逐样本评测结果
+- `results/summaries/aggregate_scores.csv`：综合指标表
+- `results/summaries/single_metric_stats.csv`：单指标表
+- `results/logs/*.log`：运行日志
+- `results/summaries/run_summary__*.json`：每次 run 的摘要
+
+这样后续做表格、画图、查错和复现实验会比较完整。

@@ -10,17 +10,12 @@ run:
 vllm:
   tensor_parallel_size: 1
   gpu_memory_utilization: 0.9
-  max_model_len: 4096
+  max_model_len: 8192
 
 models:
   aliases:
-    Qwen/Qwen2.5-Math-1.5B-Instruct: models/Qwen2.5-Math-1.5B-Instruct
     deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B: models/DeepSeek-R1-Distill-Qwen-1.5B
   settings:
-    Qwen/Qwen2.5-Math-1.5B-Instruct:
-      reasoning_mode: prompt_cot
-      enable_thinking:
-      cannot_disable_thinking: false
     deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B:
       reasoning_mode: native_thinking
       enable_thinking: true
@@ -41,26 +36,26 @@ method_configs:
   cot_zero:
     temperature: 0.0
     top_p: 1.0
-    max_tokens: 2048
+    max_tokens: 4096
   cot_few_shot:
     temperature: 0.0
     top_p: 1.0
-    max_tokens: 2048
+    max_tokens: 4096
     num_examples: 3
   self_refine:
     temperature: 0.0
     top_p: 1.0
-    max_tokens: 2048
+    max_tokens: 4096
     max_refine_rounds: 1
   self_consistency:
     temperature: 0.7
     top_p: 0.95
-    max_tokens: 2048
+    max_tokens: 4096
     n_samples: 5
   tir:
     temperature: 0.0
     top_p: 1.0
-    max_tokens: 2048
+    max_tokens: 8192
 
 scoring:
   weights:

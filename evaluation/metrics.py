@@ -1,217 +1,123 @@
-"""
-Metric extraction utilities for math reasoning outputs.
-"""
+"""Metric extraction utilities for evaluated records."""
 
+from __future__ import annotations
+
+import math
 import re
-from fractions import Fraction
 from typing import Any
 from typing import Dict
-from typing import List
-from typing import Optional
 from typing import Tuple
 
+from .math_grader import math_equal
+from .parser import extract_answer
+from .parser import strip_string
 
-REFLECTION_PATTERN = re.compile(
-    r"\b(rethink|reconsider|double-check|check again|verify|verification|"
-    r"mistake|error|correction|corrected|revise|on second thought)\b",
-    re.IGNORECASE
-)
 
-BOXED_PATTERN = re.compile(r"\\boxed\s*\{([^{}]+)\}", re.IGNORECASE)
-FINAL_ANSWER_PATTERN = re.compile(
-    r"(?:final answer\s*(?:is|:)|answer\s*:?)\s*([^\n\.]+)",
-    re.IGNORECASE
-)
-NUMBER_PATTERN = re.compile(r"[-+]?\d+(?:\.\d+)?(?:/\d+)?")
 ANSWER_SIGNAL_PATTERNS = [
-    re.compile(r"\\boxed\s*\{[^{}]+\}", re.IGNORECASE),
-    re.compile(r"final answer\s*(?:is|:)", re.IGNORECASE),
-    re.compile(r"answer\s*:", re.IGNORECASE)
+    r"\\boxed\{",
+    r"final answer is",
+    r"the answer is",
+    r"answer:",
+    r"答案是",
+]
+
+REFLECTION_PATTERNS = [
+    r"rethink",
+    r"review",
+    r"double-check",
+    r"check again",
+    r"let me verify",
+    r"反思",
+    r"检查",
 ]
 
 
-def tokenize_text(text: str) -> List[str]:
-    """
-    Split response text into whitespace tokens.
-
-    Args:
-        text: Model response text.
-    """
-    return text.split()
-
-
-def extract_final_answer(text: str) -> str:
-    """
-    Extract final answer string from a model response.
-
-    Args:
-        text: Model response text.
-    """
-    boxed = BOXED_PATTERN.findall(text)
-    if boxed:
-        return boxed[-1].strip()
-
-    answer_match = FINAL_ANSWER_PATTERN.findall(text)
-    if answer_match:
-        return answer_match[-1].strip()
-
-    numbers = NUMBER_PATTERN.findall(text)
-    if numbers:
-        return numbers[-1].strip()
-    return text.strip()
-
-
-def normalize_answer(answer: str) -> str:
-    """
-    Normalize answer text for comparison.
-
-    Args:
-        answer: Raw answer text.
-    """
-    cleaned = answer.strip().lower()
-    cleaned = cleaned.strip("$")
-    cleaned = cleaned.replace(",", "")
-    cleaned = re.sub(r"\s+", "", cleaned)
-    cleaned = cleaned.rstrip(".")
-    return cleaned
-
-
-def _to_float(answer: str) -> Optional[float]:
-    """
-    Convert normalized answer to float when possible.
-
-    Args:
-        answer: Normalized answer text.
-    """
-    try:
-        if "/" in answer and not answer.startswith("http"):
-            return float(Fraction(answer))
-        return float(answer)
-    except Exception:
-        return None
-
-
-def are_answers_equivalent(prediction: str, reference: str) -> bool:
-    """
-    Check whether prediction and reference are equivalent.
-
-    Args:
-        prediction: Predicted answer text.
-        reference: Ground-truth answer text.
-    """
-    pred_norm = normalize_answer(prediction)
-    ref_norm = normalize_answer(reference)
-
-    if pred_norm == ref_norm:
-        return True
-
-    pred_float = _to_float(pred_norm)
-    ref_float = _to_float(ref_norm)
-    if pred_float is None or ref_float is None:
-        return False
-
-    return abs(pred_float - ref_float) <= 1e-6
-
-
-def count_reflection_terms(text: str) -> int:
-    """
-    Count reflection keyword hits in response text.
-
-    Args:
-        text: Model response text.
-    """
-    return len(REFLECTION_PATTERN.findall(text))
+def extract_final_answer(raw_output: str, dataset_name: str = "math500") -> str:
+    """Extract the final answer from a model response."""
+    return extract_answer(raw_output or "", dataset_name)
 
 
 def detect_answer_signals(text: str) -> Tuple[int, int]:
-    """
-    Count answer signals and locate first signal char index.
+    """Count answer cues and return the first cue index."""
+    if not text:
+        return 0, -1
 
-    Args:
-        text: Model response text.
-    """
-    spans = []
+    matches: list[re.Match[str]] = []
     for pattern in ANSWER_SIGNAL_PATTERNS:
-        for match in pattern.finditer(text):
-            spans.append((match.start(), match.end()))
+        matches.extend(re.finditer(pattern, text, flags = re.IGNORECASE))
 
-    spans.sort(key = lambda pair: pair[0])
-    deduplicated = []
-    for start, end in spans:
-        if not deduplicated:
-            deduplicated.append((start, end))
-            continue
-        prev_start, prev_end = deduplicated[-1]
-        if start < prev_end:
-            if end > prev_end:
-                deduplicated[-1] = (prev_start, end)
-            continue
-        deduplicated.append((start, end))
+    if not matches:
+        return 0, -1
 
-    answer_count = len(deduplicated)
-    first_char_idx = deduplicated[0][0] if deduplicated else -1
-    return answer_count, first_char_idx
+    first_index = min(match.start() for match in matches)
+    return len(matches), first_index
 
 
-def compute_tail_ratio(
-    text: str,
-    first_answer_char_idx: int
-) -> Tuple[int, float]:
-    """
-    Compute first answer token index and post-answer token ratio.
+def count_reflections(text: str) -> int:
+    """Count reflective phrases that hint at over-reasoning."""
+    if not text:
+        return 0
 
-    Args:
-        text: Model response text.
-        first_answer_char_idx: Char index of first answer signal.
-    """
-    tokens = tokenize_text(text)
-    total_tokens = max(1, len(tokens))
+    count = 0
+    for pattern in REFLECTION_PATTERNS:
+        count += len(re.findall(pattern, text, flags = re.IGNORECASE))
+    return count
 
-    if first_answer_char_idx < 0:
-        return -1, 1.0
 
-    prefix = text[:first_answer_char_idx]
-    first_token_idx = len(prefix.split())
-    first_token_idx = min(first_token_idx, total_tokens - 1)
-    tokens_after_first = max(0, total_tokens - first_token_idx - 1)
-    tail_ratio = tokens_after_first / total_tokens
-    return first_token_idx, tail_ratio
+def normalize_ground_truth(ground_truth: Any, dataset_name: str = "math500") -> str:
+    """Normalize ground-truth answers from processed datasets."""
+    text = str(ground_truth or "").strip()
+    dataset_name = dataset_name.lower()
+
+    if not text:
+        return ""
+    if dataset_name == "gsm8k" or "####" in text:
+        return extract_answer(text, "gsm8k")
+    if "boxed" in text or "final answer is" in text.lower():
+        return extract_answer(text, "math")
+    return strip_string(text)
+
+
+def _estimate_token_count(text: str) -> int:
+    """Estimate token count with a whitespace fallback."""
+    stripped = (text or "").strip()
+    if not stripped:
+        return 0
+    return len(stripped.split())
+
+
+def _tail_ratio(text: str, first_signal_idx: int) -> float:
+    """Compute remaining text ratio after the first answer signal."""
+    if not text or first_signal_idx < 0 or first_signal_idx >= len(text):
+        return 0.0
+    tail_chars = len(text[first_signal_idx:])
+    return tail_chars / max(len(text), 1)
 
 
 def collect_metrics(
     raw_output: str,
-    ground_truth: str,
-    final_answer: Optional[str] = None
+    ground_truth: Any,
+    dataset_name: str = "math500",
 ) -> Dict[str, Any]:
-    """
-    Compute per-sample metrics used in evaluation and scoring.
-
-    Args:
-        raw_output: Full generated response text.
-        ground_truth: Ground-truth answer text.
-        final_answer: Optional pre-extracted answer.
-    """
-    predicted = final_answer if final_answer is not None else extract_final_answer(raw_output)
-
-    answer_count, first_char_idx = detect_answer_signals(raw_output)
-    first_answer_token_idx, tail_ratio = compute_tail_ratio(
-        text = raw_output,
-        first_answer_char_idx = first_char_idx
-    )
-
-    tokens = tokenize_text(raw_output)
-    response_length_tokens = len(tokens)
-    response_length_chars = len(raw_output)
-    reflection_count = count_reflection_terms(raw_output)
-    accuracy = int(are_answers_equivalent(predicted, ground_truth))
+    """Collect core evaluation metrics for one response."""
+    output_text = raw_output or ""
+    final_answer = extract_final_answer(output_text, dataset_name = dataset_name)
+    normalized_ground_truth = normalize_ground_truth(ground_truth, dataset_name = dataset_name)
+    answer_count, first_answer_token_idx = detect_answer_signals(output_text)
+    reflection_count = count_reflections(output_text)
+    accuracy = 1 if math_equal(final_answer, normalized_ground_truth) else 0
+    response_length_chars = len(output_text)
+    response_length_tokens = _estimate_token_count(output_text)
+    tail_ratio = _tail_ratio(output_text, first_answer_token_idx)
 
     return {
-        "final_answer": predicted,
+        "final_answer": final_answer,
+        "normalized_ground_truth": normalized_ground_truth,
         "accuracy": accuracy,
         "response_length_tokens": response_length_tokens,
         "response_length_chars": response_length_chars,
         "reflection_count": reflection_count,
         "answer_count": answer_count,
         "first_answer_token_idx": first_answer_token_idx,
-        "tail_ratio": tail_ratio
+        "tail_ratio": 0.0 if math.isnan(tail_ratio) else tail_ratio,
     }

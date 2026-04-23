@@ -2,13 +2,14 @@
 
 ## Topic 1: Mathematical Reasoning of Small Open-Weight LLMs
 
-本项目用于完成 CS6493 课程 Topic 1 的实验框架，目标是比较不同提示方法在数学推理任务上的表现，并在准确率之外评估推理效率与过度推理行为。
+本项目用于完成 CS6493 课程 Topic 1 的实验框架，统一实验单元为：`一个模型 + 一种提示方法 + 3 份数据集 + 自动评估 + 运行汇总`。
 
-核心流程：
-1. 数据准备（固定抽样）
-2. 本地 vLLM 推理（不依赖 OpenAI 兼容服务）
-3. 指标评估与单题打分
-4. 聚合统计与结果汇总
+当前框架支持：
+1. 固定抽样数据准备
+2. 本地 vLLM 推理
+3. 逐样本自动评估与复合打分
+4. 跨数据集聚合汇总
+5. 运行日志与完整产物落盘
 
 ## 实验设置
 
@@ -27,94 +28,102 @@
 - `self_refine`
 - `self_consistency`
 - `tir`
-- `sr_sd_tir`
 
 ## 项目结构
 
 ```text
-configs/yaml/                  # 基础配置与 demo 配置
+configs/yaml/                  # 基础配置与模型专用 YAML
 data/processed/                # 固定抽样后的 JSONL
-infer_exp/                     # 推理主流程
-evaluation/                    # 指标提取、评分与汇总
-prompts/                       # 各方法提示模板
-vllm_server/                   # 本地 vLLM 引擎封装
-scripts/setup/                 # 环境与模型下载脚本
+docs/                          # 项目说明文档
+infer_exp/                     # 实验主调度与配置解析
+evaluation/                    # 指标提取、打分与汇总
+prompts/                       # 各提示方法实现与注册
 scripts/data/                  # 数据准备脚本
 scripts/infer/                 # 推理脚本
 scripts/eval/                  # 评估与汇总脚本
+vllm_server/                   # 本地 vLLM 引擎封装
 tests/                         # 单元测试
 results/raw/                   # 原始推理结果
-results/evaluated/             # 评估后结果
-results/summaries/             # 聚合统计 CSV
+results/evaluated/             # 评估后逐样本结果
+results/summaries/             # 聚合统计与运行摘要
+results/logs/                  # 运行日志
 ```
 
 ## 环境准备
 
 建议 Python 版本：`3.10+`
 
-### 方式 1：直接安装（推荐）
+推荐直接使用现有 `conda` 环境：
 
 ```bash
+conda activate llm_train
 pip install -U pip
 pip install -r requirements.txt
 ```
 
-### 方式 2：使用脚本安装
+## 配置文件
 
-```bash
-bash scripts/setup/install_requirements.sh "" requirements.txt
-```
+### 基础配置
+- `configs/yaml/base.yaml`：包含两个模型，适合跑完整实验矩阵
 
-说明：
-- `scripts/setup/install_requirements.sh` 的默认依赖文件仍是 `requirements.topic1.txt`。
-- 当前仓库使用 `requirements.txt`，请显式传入第二个参数。
+### 单模型配置
+- `configs/yaml/qwen_math.yaml`：仅保留 Qwen 配置
+- `configs/yaml/deepseek_r1_math.yaml`：仅保留 DeepSeek-R1 配置
+
+### 两个模型的推理模式差异
+- `Qwen/Qwen2.5-Math-1.5B-Instruct` 是文本模型，依赖 `cot` 类 prompt 显式触发推理
+- `deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B` 是原生思考模型，默认保留思考行为，不关闭 `thinking`
 
 ## 快速开始
 
-### 1. 准备固定样本（建议）
+### 1. 准备固定样本
 
 ```bash
-bash scripts/data/prepare_samples.sh 30 6493 data/processed
+bash scripts/data/prepare_samples.sh 50 6493 data/processed
 ```
 
-参数：
-- 第 1 个：每个数据集样本数（默认 `30`）
-- 第 2 个：随机种子（默认 `6493`）
-- 第 3 个：输出目录（默认 `data/processed`）
+说明：
+- 第 1 个参数：每个数据集抽样上限
+- 第 2 个参数：随机种子
+- 第 3 个参数：输出目录
+- 当前配置默认读取上限为：`math500=50`、`gsm8k=50`、`aime2024=30`
 
-### 2. 运行推理
+### 2. 运行单个实验单元
 
-单模型跑全部数据集与全部方法：
+运行 `Qwen + cot_zero + 3 个数据集`：
 
 ```bash
-bash scripts/infer/run_single_model_all.sh configs/yaml/base.yaml Qwen/Qwen2.5-Math-1.5B-Instruct 30
+bash scripts/infer/run_single_model_all.sh configs/yaml/qwen_math.yaml "Qwen/Qwen2.5-Math-1.5B-Instruct" 50 "" cot_zero
 ```
 
-仅跑指定数据集：
+运行 `DeepSeek-R1 + self_consistency + 3 个数据集`：
 
 ```bash
-bash scripts/infer/run_single_model_all.sh configs/yaml/base.yaml Qwen/Qwen2.5-Math-1.5B-Instruct 30 math500,gsm8k
+bash scripts/infer/run_single_model_all.sh configs/yaml/deepseek_r1_math.yaml "deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B" 30 "" self_consistency
 ```
 
-仅跑指定方法：
+参数说明：
+- 第 1 个参数：配置文件路径
+- 第 2 个参数：模型名
+- 第 3 个参数：样本上限覆盖值，传 `0` 表示沿用 YAML 默认值
+- 第 4 个参数：数据集过滤，空字符串表示默认跑 `math500,gsm8k,aime2024`
+- 第 5 个参数：方法过滤，支持逗号分隔
+
+### 3. 运行完整实验矩阵
 
 ```bash
-bash scripts/infer/run_single_model_all.sh configs/yaml/base.yaml Qwen/Qwen2.5-Math-1.5B-Instruct 30 "" cot_zero,tir
+bash scripts/infer/run_experiments.sh configs/yaml/base.yaml
 ```
 
-或按 demo 配置运行单方法：
+该命令会读取 `configs/yaml/base.yaml` 中声明的模型与方法组合，依次执行整套实验。
 
-```bash
-bash scripts/infer/run_experiments.sh configs/yaml/demos/tir_demo.yaml
-```
-
-### 3. 评估结果
+### 4. 单独执行评估
 
 ```bash
 bash scripts/eval/evaluate_runs.sh configs/yaml/base.yaml
 ```
 
-### 4. 生成汇总表
+### 5. 单独生成汇总
 
 ```bash
 bash scripts/eval/summarize_scores.sh configs/yaml/base.yaml
@@ -122,44 +131,46 @@ bash scripts/eval/summarize_scores.sh configs/yaml/base.yaml
 
 ## 输出产物
 
-### 原始推理输出
+### 原始推理结果
 - 目录：`results/raw/`
-- 文件名模式：`{model_alias}__{dataset}__{method}__{timestamp}.jsonl`
-- 运行摘要：`run_summary__{timestamp}.json`
+- 文件模式：`{model_alias}__{dataset}__{method}__{run_id}.jsonl`
+- 典型字段：`question`、`gold_answer`、`input_messages`、`raw_response`、`final_response`、`intermediate_outputs`、`metadata`、`error`
 
-### 评估输出
+### 逐样本评测结果
 - 目录：`results/evaluated/`
-- 每条样本新增字段：
-  - `accuracy`
-  - `response_length_tokens`
-  - `response_length_chars`
-  - `reflection_count`
-  - `answer_count`
-  - `first_answer_token_idx`
-  - `tail_ratio`
-  - `length_factor`
-  - `answer_factor`
-  - `reflection_factor`
-  - `score_i`
+- 新增字段：`parsed_prediction`、`accuracy`、`response_length_tokens`、`response_length_chars`、`reflection_count`、`answer_count`、`first_answer_token_idx`、`tail_ratio`、`length_factor`、`answer_factor`、`reflection_factor`、`score_i`
 
-### 汇总输出
+### 聚合统计
 - `results/summaries/aggregate_scores.csv`
 - `results/summaries/single_metric_stats.csv`
 
-## 关键配置说明（`configs/yaml/base.yaml`）
+### 运行摘要
+- 文件模式：`results/summaries/run_summary__{run_id}__{model_alias}__{method}.json`
+- 内容包含：每个数据集聚合结果、overall 聚合结果、模型思考模式设置、产物路径
+
+### 运行日志
+- 文件模式：`results/logs/run_log__{run_id}__{model_alias}__{method}.log`
+- 推理运行时会通过 `logging` 实时打印到终端，同时将同样格式的日志文本追加写入该 `.log` 文件
+- 不再打印逐样本成功日志；推理与评估进度改为通过 `tqdm` 进度条展示
+- 日志事件包括：`run_started`、`engine_build_started`、`engine_build_completed`、`dataset_started`、`sample_failed`、`raw_write_started`、`evaluation_started`、`dataset_completed`、`summary_started`、`run_completed`
+
+## 关键配置说明
+
+配置主文件位于 `configs/yaml/base.yaml`。
 
 ### `run`
 - `output_dir`：原始结果目录
 - `evaluated_dir`：评估结果目录
 - `summary_dir`：汇总目录
-- `num_workers`：线程数
+- `log_dir`：运行日志目录
+- `num_workers`：运行阶段并发相关配置
+- `eval_num_workers`：评测阶段单文件内部线程数
 - `micro_batch_size`：微批大小
 
-### `vllm`
-- `tensor_parallel_size`：张量并行大小
-- `gpu_memory_utilization`：显存占用比例
-- `max_model_len`：最大上下文长度
-- `max_num_seqs`：并发序列数
+### `models.settings`
+- `reasoning_mode`：区分 `prompt_cot` 与 `native_thinking`
+- `enable_thinking`：是否向底层引擎透传 thinking 开关
+- `cannot_disable_thinking`：标记模型是否天然不能关闭思考
 
 ### `datasets`
 - `name`：数据集名称
@@ -168,28 +179,25 @@ bash scripts/eval/summarize_scores.sh configs/yaml/base.yaml
 
 ### `method_configs`
 - 通用采样参数：`temperature`、`top_p`、`max_tokens`
-- `self_consistency`：`n_samples`
-- `tir/sr_sd_tir`：`exec_timeout_sec`、`exec_python_mode`、`exec_conda_env`
+- `self_consistency`：额外使用 `n_samples`
 
 ### `scoring`
-- `weights`：`answer`、`length`、`reflection`
-- `params`：`a_star`、`tau_a`、`r_star`、`tau_r`、`rho_star`、`tau_tail`、`L_ref`、`tau_d`
-- `length_overrides`：按数据集/方法覆写长度惩罚参数
+- `weights`：`answer`、`length`、`reflection` 三类惩罚权重
+- `params`：`a_star`、`tau_a`、`r_star`、`tau_r`、`rho_star`、`tau_tail`、`L_ref`、`tau_d` 等复合得分参数
 
-## 复现与公平性建议
+## 评估说明
 
-为保证不同实验可对比：
-1. 固定 `datasets[].sample_path` 指向同一批 JSONL。
-2. 固定 `max_samples` 与方法参数。
-3. 先小规模跑通，再扩大样本和并发。
+- `accuracy`：答案抽取后与标准答案比对得到的正确率
+- `response_length_tokens` / `response_length_chars`：回答长度指标
+- `score_i`：在答对前提下，综合长度、答案信号次数、反思行为与拖尾比例得到的单题得分
+- 评测阶段支持对每个数据集结果文件使用 `ThreadPoolExecutor` 做多线程加速，线程数由 `run.eval_num_workers` 控制
 
-如果你只关心“题目一致”，建议首次抽样后锁定样本目录，例如复制 `data/processed` 到单独目录并长期复用。
+## 复现建议
 
-## 模型下载（可选）
-
-```bash
-bash scripts/setup/download_hf_assets.sh models/hf_cache
-```
+为保证实验可比性：
+1. 固定 `datasets[].sample_path`，长期复用同一批样本
+2. 固定 `max_samples` 与方法参数
+3. 先做小样本 smoke test，再扩大到正式样本规模
 
 ## 单元测试
 
@@ -197,16 +205,20 @@ bash scripts/setup/download_hf_assets.sh models/hf_cache
 pytest -q tests
 ```
 
+## 更多说明
+
+更完整的中文使用文档、结果目录解释和评分配置说明见 `docs/topic1_run_guide_cn.md`。
+
 ## 常见问题
 
 1. `ImportError: No module named vllm`
-- 执行 `pip install -r requirements.txt`。
+- 执行 `pip install -r requirements.txt`
 
 2. 显存不足（OOM）
-- 调小 `vllm.max_model_len`、`vllm.max_num_seqs`、`run.micro_batch_size`、`run.num_workers`。
+- 调小 `vllm.max_model_len`、`run.micro_batch_size`、`run.num_workers`
 
 3. 找不到样本文件
-- 检查 `datasets[].sample_path` 是否存在且路径正确。
+- 检查 `datasets[].sample_path` 是否存在且路径正确
 
-4. TIR 执行代码失败
-- 检查 `exec_python_mode` 与 `exec_conda_env` 配置是否正确。
+4. 评估速度较慢
+- 提高 `run.eval_num_workers`，但注意不要超过机器可承受线程数

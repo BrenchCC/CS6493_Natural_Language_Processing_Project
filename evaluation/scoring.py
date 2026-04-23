@@ -1,114 +1,65 @@
-"""
-Score calculation utilities with range constraint [0, 1].
-"""
+"""Composite score computation for evaluated records."""
+
+from __future__ import annotations
 
 import math
 from typing import Any
 from typing import Dict
 
 
-DEFAULT_SCORING_CONFIG = {
+DEFAULT_SCORING_CONFIG: Dict[str, Any] = {
     "weights": {
         "answer": 0.3,
         "length": 0.4,
-        "reflection": 0.3
+        "reflection": 0.3,
     },
     "params": {
-        "a_star": 2.0,
+        "a_star": 2,
         "tau_a": 2.0,
-        "r_star": 2.0,
+        "r_star": 1,
         "tau_r": 2.0,
-        "rho_star": 0.25,
-        "tau_tail": 0.20,
-        "L_ref": 256.0,
-        "tau_d": 256.0
-    }
+        "rho_star": 0.2,
+        "tau_tail": 0.2,
+        "L_ref": 200,
+        "tau_d": 200.0,
+    },
 }
 
 
-def _safe_positive(value: Any, fallback: float) -> float:
-    """
-    Return positive float value with fallback.
-
-    Args:
-        value: Candidate numeric value.
-        fallback: Fallback value if invalid.
-    """
-    try:
-        parsed = float(value)
-    except Exception:
-        return fallback
-    if parsed <= 0:
-        return fallback
-    return parsed
-
-
-def _resolve_scoring_config(config: Dict[str, Any]) -> Dict[str, Any]:
-    """
-    Merge provided scoring config with defaults.
-
-    Args:
-        config: User scoring configuration dictionary.
-    """
+def _merge_scoring_config(scoring_config: Dict[str, Any] | None) -> Dict[str, Any]:
     merged = {
         "weights": dict(DEFAULT_SCORING_CONFIG["weights"]),
-        "params": dict(DEFAULT_SCORING_CONFIG["params"])
+        "params": dict(DEFAULT_SCORING_CONFIG["params"]),
     }
+    if not scoring_config:
+        return merged
 
-    for section in ["weights", "params"]:
-        user_section = (config or {}).get(section, {})
-        if not isinstance(user_section, dict):
-            continue
-        for key, value in user_section.items():
-            merged[section][key] = value
+    for section in ("weights", "params"):
+        if section in scoring_config and isinstance(scoring_config[section], dict):
+            merged[section].update(scoring_config[section])
     return merged
 
 
-def compute_score(
-    metrics: Dict[str, Any],
-    scoring_config: Dict[str, Any] = None
-) -> Dict[str, float]:
-    """
-    Compute per-sample score and factors.
+def compute_score(metrics: Dict[str, Any], scoring_config: Dict[str, Any] | None = None) -> Dict[str, float]:
+    """Compute a bounded score in `[0, 1]`."""
+    config = _merge_scoring_config(scoring_config)
+    weights = config["weights"]
+    params = config["params"]
 
-    Args:
-        metrics: Per-sample metric dictionary.
-        scoring_config: Score config with weights and params.
-    """
-    cfg = _resolve_scoring_config(scoring_config or {})
-    weights = cfg["weights"]
-    params = cfg["params"]
+    accuracy = float(metrics.get("accuracy", 0))
+    response_length = float(metrics.get("response_length_tokens", metrics.get("response_length_chars", 0)))
+    reflection_count = float(metrics.get("reflection_count", 0))
+    answer_count = float(metrics.get("answer_count", 0))
+    tail_ratio = float(metrics.get("tail_ratio", 0.0))
 
-    c = 1.0 if int(metrics.get("accuracy", 0)) == 1 else 0.0
-    length_tokens = max(0.0, float(metrics.get("response_length_tokens", 0.0)))
-    reflection_count = max(0.0, float(metrics.get("reflection_count", 0.0)))
-    answer_count = max(0.0, float(metrics.get("answer_count", 0.0)))
-    tail_ratio = max(0.0, min(1.0, float(metrics.get("tail_ratio", 1.0))))
+    length_factor = math.exp(-max(0.0, response_length - float(params["L_ref"])) / max(float(params["tau_d"]), 1e-8))
+    count_factor = math.exp(-max(0.0, answer_count - float(params["a_star"])) / max(float(params["tau_a"]), 1e-8))
+    tail_factor = math.exp(-max(0.0, tail_ratio - float(params["rho_star"])) / max(float(params["tau_tail"]), 1e-8))
+    answer_factor = count_factor * tail_factor
+    reflection_factor = math.exp(-abs(reflection_count - float(params["r_star"])) / max(float(params["tau_r"]), 1e-8))
 
-    L_ref = _safe_positive(params.get("L_ref"), 256.0)
-    tau_d = _safe_positive(params.get("tau_d"), 256.0)
-    a_star = float(params.get("a_star", 2.0))
-    tau_a = _safe_positive(params.get("tau_a"), 2.0)
-    r_star = float(params.get("r_star", 2.0))
-    tau_r = _safe_positive(params.get("tau_r"), 2.0)
-    rho_star = float(params.get("rho_star", 0.25))
-    tau_tail = _safe_positive(params.get("tau_tail"), 0.20)
-
-    length_factor = math.exp(-max(0.0, length_tokens - L_ref) / tau_d)
-    count_factor = math.exp(-max(0.0, answer_count - a_star) / tau_a)
-    tail_factor = math.exp(-max(0.0, tail_ratio - rho_star) / tau_tail)
-    answer_factor = max(0.0, min(1.0, count_factor * tail_factor))
-    reflection_factor = math.exp(-abs(reflection_count - r_star) / tau_r)
-
-    w_answer = float(weights.get("answer", 0.3))
-    w_length = float(weights.get("length", 0.4))
-    w_reflection = float(weights.get("reflection", 0.3))
-
-    score = c
-    score *= answer_factor ** w_answer
-    score *= length_factor ** w_length
-    score *= reflection_factor ** w_reflection
-    score = max(0.0, min(1.0, score))
+    score_i = accuracy * (answer_factor ** float(weights["answer"])) * (length_factor ** float(weights["length"])) * (reflection_factor ** float(weights["reflection"]))
+    score_i = max(0.0, min(1.0, score_i))
 
     return {
         "length_factor": length_factor,
@@ -116,5 +67,5 @@ def compute_score(
         "tail_factor": tail_factor,
         "answer_factor": answer_factor,
         "reflection_factor": reflection_factor,
-        "score_i": score
+        "score_i": score_i,
     }

@@ -1,8 +1,6 @@
-"""
-vLLM server utilities.
-"""
+"""vLLM server utilities."""
 
-from .local_engine import LocalVLLMEngine
+from .server import VLLMEngine
 
 
-__all__ = ["LocalVLLMEngine"]
+__all__ = ["VLLMEngine"]

@@ -429,3 +429,4 @@ CLAUDE.md
 .omc
 .codex*
 .claude*
+models/*
