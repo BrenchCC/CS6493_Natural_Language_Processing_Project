@@ -1,0 +1,14 @@
+[2026-04-24T09:46:05Z] [INFO] [20260424_094605] run_started {'model_name': 'deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B',
+ 'model_alias': 'DeepSeek-R1-Distill-Qwen-1.5B',
+ 'method_name': 'cot_few_shot',
+ 'reasoning_mode': 'native_thinking',
+ 'enable_thinking': True,
+ 'cannot_disable_thinking': False,
+ 'disable_sampling': False,
+ 'log_path': '/mnt/bn/brench-hl-volume-v1/self-project/CS6493_Natural_Language_Processing_Project/results/logs/run_log__20260424_094605__DeepSeek-R1-Distill-Qwen-1.5B__cot_few_shot.log'}
+[2026-04-24T09:46:05Z] [INFO] [20260424_094605] engine_build_started {'model_name': 'deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B',
+ 'model_path': '/mnt/bn/brench-hl-volume-v1/self-project/CS6493_Natural_Language_Processing_Project/models/DeepSeek-R1-Distill-Qwen-1.5B'}
+[2026-04-24T09:46:39Z] [INFO] [20260424_094605] engine_build_completed {'model_name': 'deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B'}
+[2026-04-24T09:46:39Z] [INFO] [20260424_094605] dataset_started {'dataset_name': 'math500',
+ 'sample_count': 50,
+ 'sample_path': '/mnt/bn/brench-hl-volume-v1/self-project/CS6493_Natural_Language_Processing_Project/data/processed/math500_sample.jsonl'}

@@ -27,7 +27,6 @@ share/python-wheels/
 MANIFEST
 .DS_Store
 .vscode
-logs/
 .obsidian
 # PyInstaller
 #  Usually these files are written by a python script from a template
@@ -59,7 +58,6 @@ cover/
 *.pot
 
 # Django stuff:
-*.log
 local_settings.py
 db.sqlite3
 db.sqlite3-journal
@@ -238,7 +236,6 @@ share/python-wheels/
 MANIFEST
 .DS_Store
 .vscode
-logs/
 .obsidian
 # PyInstaller
 #  Usually these files are written by a python script from a template
@@ -271,7 +268,6 @@ cover/
 *.pot
 
 # Django stuff:
-*.log
 local_settings.py
 db.sqlite3
 db.sqlite3-journal

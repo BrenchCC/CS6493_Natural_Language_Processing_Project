@@ -7,7 +7,6 @@ This logic is largely copied from the Hendrycks' MATH release (math_equivalence)
 """
 
 import re
-import regex
 import multiprocessing
 from math import isclose
 from typing import Union
@@ -37,7 +36,7 @@ def choice_answer_clean(pred: str):
 
 
 def parse_digits(num):
-    num = regex.sub(",", "", str(num))
+    num = re.sub(",", "", str(num))
     try:
         return float(num)
     except:
@@ -148,8 +147,8 @@ def math_equal(
 
     ## [a, b] vs. [c, d], return a==c and b==d
     if (
-        regex.match(r"(\(|\[).+(\)|\])", prediction) is not None
-        and regex.match(r"(\(|\[).+(\)|\])", reference) is not None
+        re.match(r"(\(|\[).+(\)|\])", prediction) is not None
+        and re.match(r"(\(|\[).+(\)|\])", reference) is not None
     ):
         pred_parts = prediction[1:-1].split(",")
         ref_parts = reference[1:-1].split(",")

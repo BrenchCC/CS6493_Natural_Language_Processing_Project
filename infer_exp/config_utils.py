@@ -90,4 +90,9 @@ def get_model_settings(config: Dict[str, Any], model_name: str) -> Dict[str, Any
     normalized.setdefault("reasoning_mode", "prompt_cot")
     normalized.setdefault("enable_thinking", None)
     normalized.setdefault("cannot_disable_thinking", False)
+    normalized.setdefault("disable_sampling", False)
+
+    if normalized.get("cannot_disable_thinking"):
+        normalized["enable_thinking"] = None
+
     return normalized

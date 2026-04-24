@@ -1,6 +1,6 @@
 import os
 import io
-import regex
+import re
 import pickle
 import traceback
 import copy
@@ -29,8 +29,8 @@ class GenericRuntime:
             self.exec_code(c)
 
     def exec_code(self, code_piece: str) -> None:
-        if regex.search(r'(\s|^)?input\(', code_piece):
-        # regex.search(r'(\s|^)?os.', code_piece):
+        if re.search(r'(\s|^)?input\(', code_piece):
+        # re.search(r'(\s|^)?os.', code_piece):
             raise RuntimeError()
         exec(code_piece, self._global_vars)
 

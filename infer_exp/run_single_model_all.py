@@ -160,6 +160,7 @@ def run_one_model_one_method_all_datasets(
         reasoning_mode = model_settings.get("reasoning_mode"),
         enable_thinking = model_settings.get("enable_thinking"),
         cannot_disable_thinking = model_settings.get("cannot_disable_thinking"),
+        disable_sampling = model_settings.get("disable_sampling"),
         log_path = str(log_path),
     )
     logger.log("INFO", "engine_build_started", model_name = model_name, model_path = resolve_model_path(config, model_name))

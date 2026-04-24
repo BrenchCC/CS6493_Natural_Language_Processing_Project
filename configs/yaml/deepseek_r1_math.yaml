@@ -3,14 +3,14 @@ run:
   evaluated_dir: results/evaluated
   summary_dir: results/summaries
   log_dir: results/logs
-  num_workers: 1
-  eval_num_workers: 4
+  num_workers: 2
+  eval_num_workers: 8
   micro_batch_size: 1
 
 vllm:
-  tensor_parallel_size: 1
+  tensor_parallel_size: 2
   gpu_memory_utilization: 0.9
-  max_model_len: 8192
+  max_model_len: 32768
 
 models:
   aliases:
@@ -19,7 +19,7 @@ models:
     deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B:
       reasoning_mode: native_thinking
       enable_thinking: true
-      cannot_disable_thinking: true
+      cannot_disable_thinking: false
 
 datasets:
   - name: math500
@@ -34,40 +34,66 @@ datasets:
 
 method_configs:
   cot_zero:
-    temperature: 0.0
-    top_p: 1.0
-    max_tokens: 4096
+    temperature: 0.6
+    top_p: 0.95
+    max_tokens: 32768
   cot_few_shot:
-    temperature: 0.0
-    top_p: 1.0
-    max_tokens: 4096
+    temperature: 0.6
+    top_p: 0.95
+    max_tokens: 32768
     num_examples: 3
   self_refine:
-    temperature: 0.0
-    top_p: 1.0
-    max_tokens: 4096
+    temperature: 0.6
+    top_p: 0.95
+    max_tokens: 32768
     max_refine_rounds: 1
   self_consistency:
-    temperature: 0.7
+    temperature: 0.6
     top_p: 0.95
-    max_tokens: 4096
+    max_tokens: 32768
     n_samples: 5
   tir:
-    temperature: 0.0
-    top_p: 1.0
-    max_tokens: 8192
+    temperature: 0.6
+    top_p: 0.95
+    max_tokens: 16384
+    repetition_penalty: 1.2
 
 scoring:
+  reflection_patterns:
+    - "\\bwait\\b"
+    - "\\balternatively\\b"
+    - "\\bhmm\\b"
+    - "\\bbut\\b"
+    - "\\bhowever\\b"
+    - "\\balternative\\b"
+    - "\\banother\\b"
+    - "\\bcheck\\b"
+    - "\\bdouble-check\\b"
+    - "\\boh\\b"
+    - "\\bmaybe\\b"
+    - "\\bverify\\b"
+    - "\\bother\\b"
+    - "\\bagain\\b"
+    - "\\bnow\\b"
+    - "\\bah\\b"
+    - "\\bany\\b"
+    - "rethink"
+    - "review"
+    - "double-check"
+    - "check again"
+    - "let me verify"
+    - "反思"
+    - "检查"
   weights:
     answer: 0.3
-    length: 0.4
-    reflection: 0.3
+    length: 0.5
+    reflection: 0.2
   params:
-    a_star: 2
-    tau_a: 2.0
-    r_star: 1
-    tau_r: 2.0
-    rho_star: 0.2
-    tau_tail: 0.2
-    L_ref: 200
-    tau_d: 200.0
+    length_ref: 1024
+    tau_length: 512.0
+    answer_count_ref: 1
+    tau_answer_count: 1.0
+    tail_ratio_ref: 0.2
+    tau_tail_ratio: 0.2
+    reflection_count_ref: 1
+    tau_reflection: 2.0

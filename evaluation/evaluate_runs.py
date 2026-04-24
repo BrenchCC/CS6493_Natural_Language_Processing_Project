@@ -27,6 +27,7 @@ def evaluate_record(record: Dict[str, Any], scoring_config: Dict[str, Any] | Non
         raw_output = raw_output,
         ground_truth = ground_truth,
         dataset_name = dataset_name,
+        reflection_patterns = (scoring_config or {}).get("reflection_patterns"),
     )
     score_data = compute_score(metrics = metrics, scoring_config = scoring_config)
 

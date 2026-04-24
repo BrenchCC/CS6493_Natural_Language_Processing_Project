@@ -73,9 +73,7 @@ Please provide the improved step-by-step solution."""
     def run(self, engine, sample, **kwargs):
         problem = str(sample.get("question", ""))
         steps = []
-        decode_strategy = self.decode_strategy()
-        if "enable_thinking" in kwargs:
-            decode_strategy["enable_thinking"] = kwargs.get("enable_thinking")
+        decode_strategy = self.resolve_decode_strategy(**kwargs)
         solve_messages = self.build_messages(problem = problem, sample = sample, **kwargs)
         solve_outputs = engine.chat(messages = solve_messages, **decode_strategy)
         current_solution = solve_outputs[0] if solve_outputs else ""
@@ -121,5 +119,6 @@ Please provide the improved step-by-step solution."""
             "metadata": {
                 "run_mode": self.run_mode,
                 "max_refine_rounds": rounds,
+                "decode_strategy": decode_strategy,
             },
         }

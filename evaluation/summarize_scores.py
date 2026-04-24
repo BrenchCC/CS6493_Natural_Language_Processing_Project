@@ -27,6 +27,16 @@ SUMMARY_FIELDS = [
     "avg_response_length_tokens",
     "avg_response_length_chars",
     "avg_score_i",
+    "joint_score",
+    "mean_sample_score",
+    "mean_efficiency_on_correct",
+    "correct_count",
+    "total_count",
+    "mean_length_factor_on_correct",
+    "mean_answer_factor_on_correct",
+    "mean_reflection_factor_on_correct",
+    "mean_count_factor_on_correct",
+    "mean_tail_factor_on_correct",
     "source_file",
 ]
 
@@ -45,7 +55,30 @@ def summarize_records(records: List[Dict[str, Any]]) -> Dict[str, Any]:
             "avg_response_length_tokens": 0.0,
             "avg_response_length_chars": 0.0,
             "avg_score_i": 0.0,
+            "joint_score": 0.0,
+            "mean_sample_score": 0.0,
+            "mean_efficiency_on_correct": 0.0,
+            "correct_count": 0,
+            "total_count": 0,
+            "mean_length_factor_on_correct": 0.0,
+            "mean_answer_factor_on_correct": 0.0,
+            "mean_reflection_factor_on_correct": 0.0,
+            "mean_count_factor_on_correct": 0.0,
+            "mean_tail_factor_on_correct": 0.0,
         }
+
+    correct_records = [record for record in records if float(record.get("accuracy", 0.0)) == 1.0]
+    sample_scores = [float(record.get("score_i", 0.0)) for record in records]
+    mean_sample_score = mean(sample_scores)
+    mean_efficiency_on_correct = mean(float(record.get("efficiency_i", 0.0)) for record in correct_records) if correct_records else 0.0
+
+    factor_means = {
+        "mean_length_factor_on_correct": mean(float(record.get("length_factor", 0.0)) for record in correct_records) if correct_records else 0.0,
+        "mean_answer_factor_on_correct": mean(float(record.get("answer_factor", 0.0)) for record in correct_records) if correct_records else 0.0,
+        "mean_reflection_factor_on_correct": mean(float(record.get("reflection_factor", 0.0)) for record in correct_records) if correct_records else 0.0,
+        "mean_count_factor_on_correct": mean(float(record.get("count_factor", 0.0)) for record in correct_records) if correct_records else 0.0,
+        "mean_tail_factor_on_correct": mean(float(record.get("tail_factor", 0.0)) for record in correct_records) if correct_records else 0.0,
+    }
 
     return {
         "run_id": records[0].get("run_id", ""),
@@ -57,7 +90,13 @@ def summarize_records(records: List[Dict[str, Any]]) -> Dict[str, Any]:
         "accuracy": mean(float(record.get("accuracy", 0)) for record in records),
         "avg_response_length_tokens": mean(float(record.get("response_length_tokens", 0)) for record in records),
         "avg_response_length_chars": mean(float(record.get("response_length_chars", 0)) for record in records),
-        "avg_score_i": mean(float(record.get("score_i", 0.0)) for record in records),
+        "avg_score_i": mean_sample_score,
+        "joint_score": mean_sample_score,
+        "mean_sample_score": mean_sample_score,
+        "mean_efficiency_on_correct": mean_efficiency_on_correct,
+        "correct_count": len(correct_records),
+        "total_count": len(records),
+        **factor_means,
     }
 
 
@@ -83,13 +122,32 @@ def summarize_all(config_path: str) -> Dict[str, str]:
 
     for evaluated_file in sorted(evaluated_dir.glob("*.jsonl")):
         records = read_jsonl(str(evaluated_file))
+        if not records:
+            continue
         file_summary = summarize_records(records)
         file_summary["source_file"] = evaluated_file.name
         aggregate_rows.append(file_summary)
         grouped_by_run[(file_summary["run_id"], file_summary["model_alias"], file_summary["method_name"])].extend(records)
 
-        for metric_name in ["accuracy", "response_length_tokens", "response_length_chars", "score_i"]:
-            values = [float(record.get(metric_name, 0.0)) for record in records]
+        metric_series = {
+            "accuracy": [float(record.get("accuracy", 0.0)) for record in records],
+            "response_length_tokens": [float(record.get("response_length_tokens", 0.0)) for record in records],
+            "response_length_chars": [float(record.get("response_length_chars", 0.0)) for record in records],
+            "score_i": [float(record.get("score_i", 0.0)) for record in records],
+        }
+        correct_records = [record for record in records if float(record.get("accuracy", 0.0)) == 1.0]
+        metric_series.update(
+            {
+                "efficiency_i_on_correct": [float(record.get("efficiency_i", 0.0)) for record in correct_records],
+                "length_factor_on_correct": [float(record.get("length_factor", 0.0)) for record in correct_records],
+                "answer_factor_on_correct": [float(record.get("answer_factor", 0.0)) for record in correct_records],
+                "reflection_factor_on_correct": [float(record.get("reflection_factor", 0.0)) for record in correct_records],
+                "count_factor_on_correct": [float(record.get("count_factor", 0.0)) for record in correct_records],
+                "tail_factor_on_correct": [float(record.get("tail_factor", 0.0)) for record in correct_records],
+            }
+        )
+
+        for metric_name, values in metric_series.items():
             metric_rows.append(
                 {
                     "run_id": file_summary["run_id"],

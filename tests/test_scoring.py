@@ -54,7 +54,7 @@ def test_wrong_answer_gate_zero() -> None:
 
 def test_answer_count_monotonic_penalty() -> None:
     """
-    Ensure larger answer_count beyond a_star decreases score.
+    Ensure larger answer_count beyond reference decreases score.
 
     Args:
         None.
@@ -70,7 +70,7 @@ def test_answer_count_monotonic_penalty() -> None:
 
 def test_tail_ratio_monotonic_penalty() -> None:
     """
-    Ensure larger post-answer tail ratio decreases score.
+    Ensure larger post-answer tail ratio decreases score when repeated answers exist.
 
     Args:
         None.
@@ -82,6 +82,34 @@ def test_tail_ratio_monotonic_penalty() -> None:
     low_score = compute_score(metrics = metrics_low)["score_i"]
     high_score = compute_score(metrics = metrics_high)["score_i"]
     assert high_score < low_score
+
+
+def test_tail_ratio_not_penalized_without_repeat_answer() -> None:
+    """Ensure tail penalty stays disabled when answer_count < 2."""
+    metrics_low = _base_metrics()
+    metrics_low["answer_count"] = 1
+    metrics_high = dict(metrics_low)
+    metrics_high["tail_ratio"] = 0.95
+
+    low_score = compute_score(metrics = metrics_low)["score_i"]
+    high_score = compute_score(metrics = metrics_high)["score_i"]
+    assert high_score == low_score
+
+
+def test_short_response_not_penalized() -> None:
+    """Ensure shorter-than-reference responses are not penalized by length."""
+    metrics = _base_metrics()
+    metrics["response_length_tokens"] = 100
+    score_data = compute_score(metrics = metrics)
+    assert score_data["length_factor"] == 1.0
+
+
+def test_low_reflection_not_penalized() -> None:
+    """Ensure reflection penalty is one-sided."""
+    metrics = _base_metrics()
+    metrics["reflection_count"] = 0
+    score_data = compute_score(metrics = metrics)
+    assert score_data["reflection_factor"] == 1.0
 
 
 def test_weight_setting_respected() -> None:
@@ -97,8 +125,8 @@ def test_weight_setting_respected() -> None:
         scoring_config = {
             "weights": {
                 "answer": 0.3,
-                "length": 0.4,
-                "reflection": 0.3
+                "length": 0.5,
+                "reflection": 0.2
             }
         }
     )

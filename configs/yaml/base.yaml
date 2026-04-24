@@ -21,6 +21,7 @@ models:
       reasoning_mode: prompt_cot
       enable_thinking:
       cannot_disable_thinking: false
+      disable_sampling: true
     deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B:
       reasoning_mode: native_thinking
       enable_thinking: true
@@ -61,18 +62,44 @@ method_configs:
     temperature: 0.0
     top_p: 1.0
     max_tokens: 2048
+    repetition_penalty: 1.2
 
 scoring:
+  reflection_patterns:
+    - "\\bwait\\b"
+    - "\\balternatively\\b"
+    - "\\bhmm\\b"
+    - "\\bbut\\b"
+    - "\\bhowever\\b"
+    - "\\balternative\\b"
+    - "\\banother\\b"
+    - "\\bcheck\\b"
+    - "\\bdouble-check\\b"
+    - "\\boh\\b"
+    - "\\bmaybe\\b"
+    - "\\bverify\\b"
+    - "\\bother\\b"
+    - "\\bagain\\b"
+    - "\\bnow\\b"
+    - "\\bah\\b"
+    - "\\bany\\b"
+    - "rethink"
+    - "review"
+    - "double-check"
+    - "check again"
+    - "let me verify"
+    - "反思"
+    - "检查"
   weights:
     answer: 0.3
-    length: 0.4
-    reflection: 0.3
+    length: 0.5
+    reflection: 0.2
   params:
-    a_star: 2
-    tau_a: 2.0
-    r_star: 1
-    tau_r: 2.0
-    rho_star: 0.2
-    tau_tail: 0.2
-    L_ref: 200
-    tau_d: 200.0
+    length_ref: 1024
+    tau_length: 512.0
+    answer_count_ref: 1
+    tau_answer_count: 1.0
+    tail_ratio_ref: 0.2
+    tau_tail_ratio: 0.2
+    reflection_count_ref: 1
+    tau_reflection: 2.0

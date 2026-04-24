@@ -21,7 +21,24 @@ ANSWER_SIGNAL_PATTERNS = [
     r"答案是",
 ]
 
-REFLECTION_PATTERNS = [
+DEFAULT_REFLECTION_PATTERNS = [
+    r"\bwait\b",
+    r"\balternatively\b",
+    r"\bhmm\b",
+    r"\bbut\b",
+    r"\bhowever\b",
+    r"\balternative\b",
+    r"\banother\b",
+    r"\bcheck\b",
+    r"\bdouble-check\b",
+    r"\boh\b",
+    r"\bmaybe\b",
+    r"\bverify\b",
+    r"\bother\b",
+    r"\bagain\b",
+    r"\bnow\b",
+    r"\bah\b",
+    r"\bany\b",
     r"rethink",
     r"review",
     r"double-check",
@@ -53,13 +70,14 @@ def detect_answer_signals(text: str) -> Tuple[int, int]:
     return len(matches), first_index
 
 
-def count_reflections(text: str) -> int:
+def count_reflections(text: str, reflection_patterns: list[str] | None = None) -> int:
     """Count reflective phrases that hint at over-reasoning."""
     if not text:
         return 0
 
+    patterns = reflection_patterns or DEFAULT_REFLECTION_PATTERNS
     count = 0
-    for pattern in REFLECTION_PATTERNS:
+    for pattern in patterns:
         count += len(re.findall(pattern, text, flags = re.IGNORECASE))
     return count
 
@@ -98,13 +116,14 @@ def collect_metrics(
     raw_output: str,
     ground_truth: Any,
     dataset_name: str = "math500",
+    reflection_patterns: list[str] | None = None,
 ) -> Dict[str, Any]:
     """Collect core evaluation metrics for one response."""
     output_text = raw_output or ""
     final_answer = extract_final_answer(output_text, dataset_name = dataset_name)
     normalized_ground_truth = normalize_ground_truth(ground_truth, dataset_name = dataset_name)
     answer_count, first_answer_token_idx = detect_answer_signals(output_text)
-    reflection_count = count_reflections(output_text)
+    reflection_count = count_reflections(output_text, reflection_patterns = reflection_patterns)
     accuracy = 1 if math_equal(final_answer, normalized_ground_truth) else 0
     response_length_chars = len(output_text)
     response_length_tokens = _estimate_token_count(output_text)

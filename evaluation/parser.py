@@ -1,5 +1,4 @@
 import random
-import regex
 import re
 import sympy
 from latex2sympy2 import latex2sympy
@@ -357,7 +356,7 @@ def extract_multi_choice_answer(pred_str):
     if "Problem:" in pred_str:
         pred_str = pred_str.split("Problem:", 1)[0]
     pred_str = pred_str.replace("choice is", "answer is")
-    patt = regex.search(r"answer is \(?(?P<ans>[abcde])\)?", pred_str.lower())
+    patt = re.search(r"answer is \(?(?P<ans>[abcde])\)?", pred_str.lower())
     if patt is not None:
         return patt.group("ans").upper()
     return "placeholder"
@@ -688,7 +687,7 @@ def parse_question(example, data_name):
         options = "(" + options
         for ch in "BCD":
             if f" {ch}) " in options:
-                options = regex.sub(f" {ch}\) ", f" ({ch}) ", options)
+                options = re.sub(rf" {ch}\) ", f" ({ch}) ", options)
         # question = f"{example['question'].strip()}\nWhat of the following is the right choice? Explain your answer.\n{options.strip()}"
         question = f"{example['question'].strip()}\nAnswer Choices: {options}"
     elif "aqua" in data_name:

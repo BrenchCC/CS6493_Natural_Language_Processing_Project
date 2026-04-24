@@ -376,6 +376,13 @@ class VLLMEngine:
         if isinstance(chat_template, str) and chat_template.strip():
             return chat_template
 
+        tokenizer_config_path = Path(self.tokenizer_path) / "tokenizer_config.json"
+        if tokenizer_config_path.exists():
+            tokenizer_config = json.loads(tokenizer_config_path.read_text(encoding = "utf-8"))
+            config_chat_template = tokenizer_config.get("chat_template")
+            if isinstance(config_chat_template, str) and config_chat_template.strip():
+                return config_chat_template
+
         chat_template_path = Path(self.tokenizer_path) / "chat_template.jinja"
         if chat_template_path.exists():
             return chat_template_path.read_text(encoding = "utf-8")

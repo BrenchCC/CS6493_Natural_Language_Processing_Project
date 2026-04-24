@@ -50,9 +50,7 @@ Please solve it step by step and conclude with the final answer in \\boxed{{}}."
         from evaluation.parser import extract_answer
 
         messages = self.build_messages(problem = str(sample.get("question", "")), sample = sample, **kwargs)
-        decode_strategy = self.decode_strategy()
-        if "enable_thinking" in kwargs:
-            decode_strategy["enable_thinking"] = kwargs.get("enable_thinking")
+        decode_strategy = self.resolve_decode_strategy(**kwargs)
         sample_count = max(1, int(self.n_samples))
         responses = []
         answers = []
@@ -87,5 +85,6 @@ Please solve it step by step and conclude with the final answer in \\boxed{{}}."
                 "run_mode": self.run_mode,
                 "n_samples": sample_count,
                 "aggregated_answer": voted_answer,
+                "decode_strategy": decode_strategy,
             },
         }

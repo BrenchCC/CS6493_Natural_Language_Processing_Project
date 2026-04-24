@@ -53,11 +53,32 @@ class PromptMethod(ABC):
 
     def decode_strategy(self) -> Dict[str, Any]:
         """Return decoding parameters for this method."""
-        return {
+        decode: Dict[str, Any] = {
             "temperature": self.config.get("temperature", 0.7),
             "top_p": self.config.get("top_p", 0.7),
             "max_tokens": self.config.get("max_tokens", 4096)
         }
+
+        # Optional sampling controls passed through to vLLM SamplingParams.
+        if "repetition_penalty" in self.config:
+            decode["repetition_penalty"] = float(self.config["repetition_penalty"])
+        return decode
+
+    def resolve_decode_strategy(self, **kwargs: Any) -> Dict[str, Any]:
+        """Return decoding parameters after applying runtime overrides."""
+        decode_strategy = dict(self.decode_strategy())
+        model_settings = kwargs.get("model_settings") or {}
+        requested_enable_thinking = kwargs.get("enable_thinking") if "enable_thinking" in kwargs else None
+        if model_settings.get("cannot_disable_thinking", False):
+            requested_enable_thinking = None
+        if "enable_thinking" in kwargs or requested_enable_thinking is not None:
+            decode_strategy["enable_thinking"] = requested_enable_thinking
+
+        disable_sampling = bool(kwargs.get("disable_sampling", model_settings.get("disable_sampling", False)))
+        if disable_sampling:
+            decode_strategy["temperature"] = 0.0
+            decode_strategy["top_p"] = 1.0
+        return decode_strategy
 
     def post_process(self, raw_text: str, **kwargs: Any) -> str:
         """Post-process model output text."""
@@ -67,9 +88,7 @@ class PromptMethod(ABC):
         """Execute this prompting method against one sample."""
         problem = str(sample.get("question", ""))
         messages = self.build_messages(problem = problem, sample = sample, **kwargs)
-        decode_strategy = dict(self.decode_strategy())
-        if "enable_thinking" in kwargs:
-            decode_strategy["enable_thinking"] = kwargs.get("enable_thinking")
+        decode_strategy = self.resolve_decode_strategy(**kwargs)
         responses = engine.chat(messages = messages, **decode_strategy)
         raw_response = responses[0] if responses else ""
         final_response = self.post_process(raw_response, sample = sample, **kwargs)
@@ -80,5 +99,6 @@ class PromptMethod(ABC):
             "intermediate_outputs": [],
             "metadata": {
                 "run_mode": self.run_mode,
+                "decode_strategy": decode_strategy,
             },
         }
