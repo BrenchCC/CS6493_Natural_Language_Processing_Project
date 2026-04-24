@@ -1,0 +1,13 @@
+[2026-04-24T09:52:15Z] [INFO] [20260424_095215] run_started {'model_name': 'Qwen/Qwen2.5-Math-1.5B-Instruct',
+ 'model_alias': 'Qwen2.5-Math-1.5B-Instruct',
+ 'method_name': 'cot_few_shot',
+ 'reasoning_mode': 'prompt_cot',
+ 'cannot_disable_thinking': False,
+ 'disable_sampling': False,
+ 'log_path': '/mnt/bn/brench-hl-volume-v1/self-project/CS6493_Natural_Language_Processing_Project/results/logs/run_log__20260424_095215__Qwen2.5-Math-1.5B-Instruct__cot_few_shot.log'}
+[2026-04-24T09:52:15Z] [INFO] [20260424_095215] engine_build_started {'model_name': 'Qwen/Qwen2.5-Math-1.5B-Instruct',
+ 'model_path': '/mnt/bn/brench-hl-volume-v1/self-project/CS6493_Natural_Language_Processing_Project/models/Qwen2.5-Math-1.5B-Instruct'}
+[2026-04-24T09:52:46Z] [INFO] [20260424_095215] engine_build_completed {'model_name': 'Qwen/Qwen2.5-Math-1.5B-Instruct'}
+[2026-04-24T09:52:47Z] [INFO] [20260424_095215] dataset_started {'dataset_name': 'math500',
+ 'sample_count': 50,
+ 'sample_path': '/mnt/bn/brench-hl-volume-v1/self-project/CS6493_Natural_Language_Processing_Project/data/processed/math500_sample.jsonl'}

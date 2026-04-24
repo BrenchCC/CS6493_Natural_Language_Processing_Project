@@ -29,6 +29,16 @@ run_id,model_alias,model_name,method_name,dataset_name,metric,mean,min,max
 20260424_090559,DeepSeek-R1-Distill-Qwen-1.5B,deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B,cot_zero,math500,reflection_factor_on_correct,0.0034031483911866746,1.560123847707823e-56,0.049787068367863944
 20260424_090559,DeepSeek-R1-Distill-Qwen-1.5B,deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B,cot_zero,math500,count_factor_on_correct,0.13647968051489662,1.3887943864964021e-11,1.0
 20260424_090559,DeepSeek-R1-Distill-Qwen-1.5B,deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B,cot_zero,math500,tail_factor_on_correct,0.5301283672871113,0.03532894936556534,1.0
+20260424_093122,Qwen2.5-Math-1.5B-Instruct,Qwen/Qwen2.5-Math-1.5B-Instruct,cot_zero,aime2024,accuracy,0.1,0.0,1.0
+20260424_093122,Qwen2.5-Math-1.5B-Instruct,Qwen/Qwen2.5-Math-1.5B-Instruct,cot_zero,aime2024,response_length_tokens,4355.266666666666,172.0,29324.0
+20260424_093122,Qwen2.5-Math-1.5B-Instruct,Qwen/Qwen2.5-Math-1.5B-Instruct,cot_zero,aime2024,response_length_chars,20538.466666666667,986.0,147384.0
+20260424_093122,Qwen2.5-Math-1.5B-Instruct,Qwen/Qwen2.5-Math-1.5B-Instruct,cot_zero,aime2024,score_i,0.09682791393453198,0.0,1.0
+20260424_093122,Qwen2.5-Math-1.5B-Instruct,Qwen/Qwen2.5-Math-1.5B-Instruct,cot_zero,aime2024,efficiency_i_on_correct,0.9682791393453198,0.9048374180359595,1.0
+20260424_093122,Qwen2.5-Math-1.5B-Instruct,Qwen/Qwen2.5-Math-1.5B-Instruct,cot_zero,aime2024,length_factor_on_correct,1.0,1.0,1.0
+20260424_093122,Qwen2.5-Math-1.5B-Instruct,Qwen/Qwen2.5-Math-1.5B-Instruct,cot_zero,aime2024,answer_factor_on_correct,1.0,1.0,1.0
+20260424_093122,Qwen2.5-Math-1.5B-Instruct,Qwen/Qwen2.5-Math-1.5B-Instruct,cot_zero,aime2024,reflection_factor_on_correct,0.8688435532375445,0.6065306597126334,1.0
+20260424_093122,Qwen2.5-Math-1.5B-Instruct,Qwen/Qwen2.5-Math-1.5B-Instruct,cot_zero,aime2024,count_factor_on_correct,1.0,1.0,1.0
+20260424_093122,Qwen2.5-Math-1.5B-Instruct,Qwen/Qwen2.5-Math-1.5B-Instruct,cot_zero,aime2024,tail_factor_on_correct,1.0,1.0,1.0
 20260424_093122,Qwen2.5-Math-1.5B-Instruct,Qwen/Qwen2.5-Math-1.5B-Instruct,cot_zero,gsm8k,accuracy,0.76,0.0,1.0
 20260424_093122,Qwen2.5-Math-1.5B-Instruct,Qwen/Qwen2.5-Math-1.5B-Instruct,cot_zero,gsm8k,response_length_tokens,822.56,84.0,17934.0
 20260424_093122,Qwen2.5-Math-1.5B-Instruct,Qwen/Qwen2.5-Math-1.5B-Instruct,cot_zero,gsm8k,response_length_chars,4367.6,451.0,99339.0
