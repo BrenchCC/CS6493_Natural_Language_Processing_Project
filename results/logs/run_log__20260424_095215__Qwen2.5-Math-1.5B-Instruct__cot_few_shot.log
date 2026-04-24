@@ -11,3 +11,35 @@
 [2026-04-24T09:52:47Z] [INFO] [20260424_095215] dataset_started {'dataset_name': 'math500',
  'sample_count': 50,
  'sample_path': '/mnt/bn/brench-hl-volume-v1/self-project/CS6493_Natural_Language_Processing_Project/data/processed/math500_sample.jsonl'}
+[2026-04-24T10:01:39Z] [INFO] [20260424_095215] raw_write_started {'dataset_name': 'math500',
+ 'raw_file': '/mnt/bn/brench-hl-volume-v1/self-project/CS6493_Natural_Language_Processing_Project/results/raw/Qwen2.5-Math-1.5B-Instruct__math500__cot_few_shot__20260424_095215.jsonl'}
+[2026-04-24T10:02:12Z] [INFO] [20260424_095215] raw_write_completed {'dataset_name': 'math500',
+ 'raw_file': '/mnt/bn/brench-hl-volume-v1/self-project/CS6493_Natural_Language_Processing_Project/results/raw/Qwen2.5-Math-1.5B-Instruct__math500__cot_few_shot__20260424_095215.jsonl'}
+[2026-04-24T10:02:12Z] [INFO] [20260424_095215] evaluation_started {'dataset_name': 'math500',
+ 'raw_file': '/mnt/bn/brench-hl-volume-v1/self-project/CS6493_Natural_Language_Processing_Project/results/raw/Qwen2.5-Math-1.5B-Instruct__math500__cot_few_shot__20260424_095215.jsonl',
+ 'evaluated_file': '/mnt/bn/brench-hl-volume-v1/self-project/CS6493_Natural_Language_Processing_Project/results/evaluated/Qwen2.5-Math-1.5B-Instruct__math500__cot_few_shot__20260424_095215.jsonl',
+ 'eval_num_workers': 8}
+[2026-04-24T10:02:41Z] [INFO] [20260424_095215] dataset_completed {'dataset_name': 'math500',
+ 'raw_file': '/mnt/bn/brench-hl-volume-v1/self-project/CS6493_Natural_Language_Processing_Project/results/raw/Qwen2.5-Math-1.5B-Instruct__math500__cot_few_shot__20260424_095215.jsonl',
+ 'evaluated_file': '/mnt/bn/brench-hl-volume-v1/self-project/CS6493_Natural_Language_Processing_Project/results/evaluated/Qwen2.5-Math-1.5B-Instruct__math500__cot_few_shot__20260424_095215.jsonl',
+ 'sample_count': 50,
+ 'accuracy': 0.56}
+[2026-04-24T10:02:41Z] [INFO] [20260424_095215] dataset_started {'dataset_name': 'gsm8k',
+ 'sample_count': 50,
+ 'sample_path': '/mnt/bn/brench-hl-volume-v1/self-project/CS6493_Natural_Language_Processing_Project/data/processed/gsm8k_sample.jsonl'}
+[2026-04-24T10:04:45Z] [INFO] [20260424_095215] raw_write_started {'dataset_name': 'gsm8k',
+ 'raw_file': '/mnt/bn/brench-hl-volume-v1/self-project/CS6493_Natural_Language_Processing_Project/results/raw/Qwen2.5-Math-1.5B-Instruct__gsm8k__cot_few_shot__20260424_095215.jsonl'}
+[2026-04-24T10:04:54Z] [INFO] [20260424_095215] raw_write_completed {'dataset_name': 'gsm8k',
+ 'raw_file': '/mnt/bn/brench-hl-volume-v1/self-project/CS6493_Natural_Language_Processing_Project/results/raw/Qwen2.5-Math-1.5B-Instruct__gsm8k__cot_few_shot__20260424_095215.jsonl'}
+[2026-04-24T10:04:54Z] [INFO] [20260424_095215] evaluation_started {'dataset_name': 'gsm8k',
+ 'raw_file': '/mnt/bn/brench-hl-volume-v1/self-project/CS6493_Natural_Language_Processing_Project/results/raw/Qwen2.5-Math-1.5B-Instruct__gsm8k__cot_few_shot__20260424_095215.jsonl',
+ 'evaluated_file': '/mnt/bn/brench-hl-volume-v1/self-project/CS6493_Natural_Language_Processing_Project/results/evaluated/Qwen2.5-Math-1.5B-Instruct__gsm8k__cot_few_shot__20260424_095215.jsonl',
+ 'eval_num_workers': 8}
+[2026-04-24T10:04:54Z] [INFO] [20260424_095215] dataset_completed {'dataset_name': 'gsm8k',
+ 'raw_file': '/mnt/bn/brench-hl-volume-v1/self-project/CS6493_Natural_Language_Processing_Project/results/raw/Qwen2.5-Math-1.5B-Instruct__gsm8k__cot_few_shot__20260424_095215.jsonl',
+ 'evaluated_file': '/mnt/bn/brench-hl-volume-v1/self-project/CS6493_Natural_Language_Processing_Project/results/evaluated/Qwen2.5-Math-1.5B-Instruct__gsm8k__cot_few_shot__20260424_095215.jsonl',
+ 'sample_count': 50,
+ 'accuracy': 0.78}
+[2026-04-24T10:04:54Z] [INFO] [20260424_095215] dataset_started {'dataset_name': 'aime2024',
+ 'sample_count': 30,
+ 'sample_path': '/mnt/bn/brench-hl-volume-v1/self-project/CS6493_Natural_Language_Processing_Project/data/processed/aime2024_sample.jsonl'}

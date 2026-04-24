@@ -40,7 +40,6 @@ Current controlled setting uses 30 sampled items per dataset for progress-stage 
 
 **Extended methods:**
 - TIR (Tool-Integrated Reasoning)
-- SR-SD-TIR (plan -> solve-with-tools -> reflect)
 
 ## 3. Method Design Rationale
 
@@ -53,15 +52,11 @@ Current controlled setting uses 30 sampled items per dataset for progress-stage 
 
 These methods form a clear progression from single-pass prompting to multi-pass / multi-sample aggregation.
 
-## 3.2 Extension design: why TIR and SR-SD-TIR
+## 3.2 Extension design: why TIR
 
-- **TIR** is designed for cases where textual reasoning alone is unstable in arithmetic/symbolic steps. It inserts executable code and uses execution feedback as an external check.
-- **SR-SD-TIR** introduces staged control:
-  1. planning sub-goals,
-  2. solving with optional tools,
-  3. reflective consolidation.
+- **TIR** is designed for cases where textual reasoning alone is unstable in arithmetic or symbolic steps. The current implementation uses a tool loop: the model emits a `python` block, the framework executes it in an isolated subprocess, and the execution result is fed back as an `output` block before generation continues.
 
-The design hypothesis is that staged reasoning can reduce wasted reasoning tokens and improve final consistency under the same model size budget.
+The design hypothesis is that tool-grounded intermediate computation can improve numerical stability while keeping the final answer format controlled.
 
 ## 3.3 Comparison logic
 
@@ -85,8 +80,8 @@ This gives a more behaviorally grounded comparison than a single headline score.
 
 - **Reflection count**: count of reflection-style signals (e.g., verify, reconsider).
 - **Answer count**: number of answer-signal occurrences in a response.
-- **First answer token index**: where answer first appears.
-- **Tail ratio**: proportion of generated tokens after first answer appears.
+- **First answer index**: character position where the first answer signal appears.
+- **Tail ratio**: proportion of remaining characters after the first answer signal appears.
 
 Interpretation:
 - high `answer_count` + high `tail_ratio` often indicates repeated or unnecessary post-answer reasoning.
@@ -95,7 +90,7 @@ Interpretation:
 
 Per-sample score:
 
-`score_i = c * (answer_factor ^ 0.3) * (length_factor ^ 0.4) * (reflection_factor ^ 0.3)`
+`score_i = c * (answer_factor ^ 0.3) * (length_factor ^ 0.5) * (reflection_factor ^ 0.2)`
 
 where `c in {0,1}` is correctness gate and final score is clipped to `[0,1]`.
 
@@ -103,26 +98,27 @@ Factor design:
 
 - `length_factor`: penalizes excessive length beyond reference budget.
 - `answer_factor = count_factor * tail_factor`:
-  - `count_factor` penalizes excessive answer repetitions beyond target `a_star`.
-  - `tail_factor` penalizes excessive post-answer continuation (`tail_ratio`).
-- `reflection_factor`: keeps moderate reflection preferable over both no-reflection and over-reflection.
+  - `count_factor` penalizes excessive answer repetitions beyond target `answer_count_ref`.
+  - `tail_factor` activates only when repeated answer signals exist and then penalizes excessive post-answer continuation (`tail_ratio`).
+- `reflection_factor`: applies one-sided penalty only when reflection count exceeds the configured reference.
 
 Current default parameters:
 
-- weights: `answer = 0.3`, `length = 0.4`, `reflection = 0.3`
-- `a_star = 2`, `tau_a = 2`
-- `r_star = 2`, `tau_r = 2`
-- `rho_star = 0.25`, `tau_tail = 0.20`
+- weights: `answer = 0.3`, `length = 0.5`, `reflection = 0.2`
+- `length_ref = 1024`, `tau_length = 512`
+- `answer_count_ref = 1`, `tau_answer_count = 1.0`
+- `tail_ratio_ref = 0.2`, `tau_tail_ratio = 0.2`
+- `reflection_count_ref = 1`, `tau_reflection = 2.0`
 
 ## 4.4 Planned statistical reporting
 
 For each `model x dataset x method` group, we report:
 
-- mean / median / mode of composite scores,
-- single-metric means (accuracy, length, reflection_count, answer_count, tail_ratio),
+- aggregate summary fields including `accuracy`, `joint_score`, `mean_sample_score`, `mean_efficiency_on_correct`, and mean factor values on correct samples,
+- single-metric `mean / min / max` tables,
 - per-question records for error analysis.
 
-This two-level reporting (group summary + per-item trace) is intended to support both macro comparison and qualitative diagnosis.
+This two-level reporting (group summary + per-item trace) supports both macro comparison and qualitative diagnosis.
 
 ## 5. Reproducibility and Fairness Controls
 

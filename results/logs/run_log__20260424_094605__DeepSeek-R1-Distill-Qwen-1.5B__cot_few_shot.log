@@ -28,3 +28,19 @@
 [2026-04-24T09:55:16Z] [INFO] [20260424_094605] dataset_started {'dataset_name': 'gsm8k',
  'sample_count': 50,
  'sample_path': '/mnt/bn/brench-hl-volume-v1/self-project/CS6493_Natural_Language_Processing_Project/data/processed/gsm8k_sample.jsonl'}
+[2026-04-24T09:56:52Z] [INFO] [20260424_094605] raw_write_started {'dataset_name': 'gsm8k',
+ 'raw_file': '/mnt/bn/brench-hl-volume-v1/self-project/CS6493_Natural_Language_Processing_Project/results/raw/DeepSeek-R1-Distill-Qwen-1.5B__gsm8k__cot_few_shot__20260424_094605.jsonl'}
+[2026-04-24T09:56:58Z] [INFO] [20260424_094605] raw_write_completed {'dataset_name': 'gsm8k',
+ 'raw_file': '/mnt/bn/brench-hl-volume-v1/self-project/CS6493_Natural_Language_Processing_Project/results/raw/DeepSeek-R1-Distill-Qwen-1.5B__gsm8k__cot_few_shot__20260424_094605.jsonl'}
+[2026-04-24T09:56:58Z] [INFO] [20260424_094605] evaluation_started {'dataset_name': 'gsm8k',
+ 'raw_file': '/mnt/bn/brench-hl-volume-v1/self-project/CS6493_Natural_Language_Processing_Project/results/raw/DeepSeek-R1-Distill-Qwen-1.5B__gsm8k__cot_few_shot__20260424_094605.jsonl',
+ 'evaluated_file': '/mnt/bn/brench-hl-volume-v1/self-project/CS6493_Natural_Language_Processing_Project/results/evaluated/DeepSeek-R1-Distill-Qwen-1.5B__gsm8k__cot_few_shot__20260424_094605.jsonl',
+ 'eval_num_workers': 8}
+[2026-04-24T09:57:05Z] [INFO] [20260424_094605] dataset_completed {'dataset_name': 'gsm8k',
+ 'raw_file': '/mnt/bn/brench-hl-volume-v1/self-project/CS6493_Natural_Language_Processing_Project/results/raw/DeepSeek-R1-Distill-Qwen-1.5B__gsm8k__cot_few_shot__20260424_094605.jsonl',
+ 'evaluated_file': '/mnt/bn/brench-hl-volume-v1/self-project/CS6493_Natural_Language_Processing_Project/results/evaluated/DeepSeek-R1-Distill-Qwen-1.5B__gsm8k__cot_few_shot__20260424_094605.jsonl',
+ 'sample_count': 50,
+ 'accuracy': 0.92}
+[2026-04-24T09:57:05Z] [INFO] [20260424_094605] dataset_started {'dataset_name': 'aime2024',
+ 'sample_count': 30,
+ 'sample_path': '/mnt/bn/brench-hl-volume-v1/self-project/CS6493_Natural_Language_Processing_Project/data/processed/aime2024_sample.jsonl'}

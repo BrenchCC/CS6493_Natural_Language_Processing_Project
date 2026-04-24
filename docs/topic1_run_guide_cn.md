@@ -13,6 +13,18 @@ conda activate llm_train
 pip install -r requirements.txt
 ```
 
+### 1.1.1 模型下载
+
+当前配置默认优先解析本地模型目录，建议先执行：
+
+```bash
+bash scripts/models/download_models.sh
+```
+
+下载后本地目录默认为：
+- `models/DeepSeek-R1-Distill-Qwen-1.5B`
+- `models/Qwen2.5-Math-1.5B-Instruct`
+
 ### 1.2 固定样本数据
 当前默认使用以下三份固定样本：
 
@@ -61,11 +73,11 @@ bash scripts/data/prepare_samples.sh 50 6493 data/processed
 #### `deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B`
 - 属于原生思考模型
 - 会输出 `<think> ... </think>` 风格思考内容
-- 当前按你的要求，默认视为**不能关闭思考**
+- 当前默认开启 thinking，但配置上**允许显式切换**
 - 配置中表现为：
   - `reasoning_mode: native_thinking`
   - `enable_thinking: true`
-  - `cannot_disable_thinking: true`
+  - `cannot_disable_thinking: false`
 
 这两个配置都会写进运行摘要，方便后续分析时区分“提示推理模型”和“原生思考模型”。
 
@@ -94,6 +106,21 @@ bash scripts/infer/run_single_model_all.sh configs/yaml/deepseek_r1_math.yaml "d
 - 第 3 个参数：样本上限覆盖值，传 `0` 表示使用 YAML 里的默认值
 - 第 4 个参数：数据集过滤，空字符串表示默认跑 `math500,gsm8k,aime2024`
 - 第 5 个参数：方法过滤，支持逗号分隔
+
+### 3.1.1 跑 `tir`
+
+`tir` 当前是工具循环模式，不是普通单轮 prompt：
+
+- 模型输出 ` ```python ` 代码块后会暂停
+- 框架执行代码并将结果以 ` ```output ` 回填
+- 每轮最多执行一个代码块
+- 最终答案要求使用 `Final Answer: \boxed{...}`
+
+示例：
+
+```bash
+bash scripts/infer/run_single_model_all.sh configs/yaml/qwen_math.yaml "Qwen/Qwen2.5-Math-1.5B-Instruct" 30 "gsm8k" tir
+```
 
 ### 3.2 跑单模型 + 多方法
 
@@ -147,8 +174,11 @@ bash scripts/infer/run_experiments.sh configs/yaml/base.yaml
   - `first_answer_token_idx`
   - `tail_ratio`
   - `length_factor`
+  - `count_factor`
+  - `tail_factor`
   - `answer_factor`
   - `reflection_factor`
+  - `efficiency_i`
   - `score_i`
 
 ### 4.3 综合指标表
@@ -254,56 +284,56 @@ bash scripts/eval/summarize_scores.sh configs/yaml/base.yaml
 
 ### 6.3 `params`
 
-#### `a_star`
-- 期望的答案信号次数上界
-- 如果 `answer_count` 超过这个值，就开始被惩罚
-
-#### `tau_a`
-- `answer_count` 惩罚衰减速度
-- 越小，超过 `a_star` 后掉分越快
-
-#### `r_star`
-- 期望的反思次数中心值
-- `reflection_count` 离这个值越远，惩罚越大
-
-#### `tau_r`
-- 反思惩罚衰减速度
-- 越小，对反思次数偏离越敏感
-
-#### `rho_star`
-- 答案出现后允许的拖尾比例阈值
-- 若 `tail_ratio` 高于该阈值，就说明模型给出答案后仍继续输出太多内容
-
-#### `tau_tail`
-- `tail_ratio` 惩罚衰减速度
-- 越小，答案后拖尾会被更严厉惩罚
-
-#### `L_ref`
+#### `length_ref`
 - 长度参考值
 - 当 `response_length_tokens` 超过它时，开始触发长度惩罚
 
-#### `tau_d`
+#### `tau_length`
 - 长度惩罚衰减速度
-- 越小，超过 `L_ref` 后掉分越快
+- 越小，超过 `length_ref` 后掉分越快
+
+#### `answer_count_ref`
+- 期望的答案信号次数上界
+- 如果 `answer_count` 超过这个值，就开始被惩罚
+
+#### `tau_answer_count`
+- `answer_count` 惩罚衰减速度
+- 越小，超过 `answer_count_ref` 后掉分越快
+
+#### `tail_ratio_ref`
+- 答案出现后允许的拖尾比例阈值
+- 当前仅在 `answer_count >= 2` 时启用拖尾惩罚
+
+#### `tau_tail_ratio`
+- `tail_ratio` 惩罚衰减速度
+- 越小，答案后拖尾会被更严厉惩罚
+
+#### `reflection_count_ref`
+- 少量反思允许存在
+- 只有反思次数超过该参考值时才开始惩罚
+
+#### `tau_reflection`
+- 反思惩罚衰减速度
+- 越小，对过度反思越敏感
 
 ### 6.4 什么时候调这些参数
 
 #### 若你觉得模型输出太长
 - 优先调：
-  - 降低 `L_ref`
-  - 降低 `tau_d`
+  - 降低 `length_ref`
+  - 降低 `tau_length`
   - 或提高 `weights.length`
 
 #### 若你觉得模型重复写答案太多
 - 优先调：
-  - 降低 `a_star`
-  - 降低 `tau_a`
+  - 降低 `answer_count_ref`
+  - 降低 `tau_answer_count`
   - 或提高 `weights.answer`
 
 #### 若你觉得模型给出答案后还在继续啰嗦
 - 优先调：
-  - 降低 `rho_star`
-  - 降低 `tau_tail`
+  - 降低 `tail_ratio_ref`
+  - 降低 `tau_tail_ratio`
 
 #### 若你想弱化复合分，只更看重正确率
 - 可以把 `weights.answer / length / reflection` 调得更平缓
@@ -319,7 +349,7 @@ bash scripts/eval/summarize_scores.sh configs/yaml/base.yaml
 
 ```yaml
 run:
-  eval_num_workers: 4
+  eval_num_workers: 8
 ```
 
 含义：
@@ -339,14 +369,14 @@ run:
 
 ```bash
 conda activate llm_train
-bash scripts/infer/run_single_model_all.sh configs/yaml/qwen_math.yaml "Qwen/Qwen2.5-Math-1.5B-Instruct" 50 "" cot_zero,cot_few_shot,self_refine,self_consistency
+bash scripts/infer/run_single_model_all.sh configs/yaml/qwen_math.yaml "Qwen/Qwen2.5-Math-1.5B-Instruct" 50 "" cot_zero,cot_few_shot,self_refine,self_consistency,tir
 ```
 
 ### 工作流 B：再跑 DeepSeek-R1 主实验
 
 ```bash
 conda activate llm_train
-bash scripts/infer/run_single_model_all.sh configs/yaml/deepseek_r1_math.yaml "deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B" 30 "" cot_zero,cot_few_shot,self_refine,self_consistency
+bash scripts/infer/run_single_model_all.sh configs/yaml/deepseek_r1_math.yaml "deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B" 30 "" cot_zero,cot_few_shot,self_refine,self_consistency,tir
 ```
 
 ### 工作流 C：最后统一补汇总
