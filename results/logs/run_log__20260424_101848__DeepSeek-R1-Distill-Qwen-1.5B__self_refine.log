@@ -1,0 +1,92 @@
+[2026-04-24T10:18:48Z] [INFO] [20260424_101848] run_started {'model_name': 'deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B',
+ 'model_alias': 'DeepSeek-R1-Distill-Qwen-1.5B',
+ 'method_name': 'self_refine',
+ 'reasoning_mode': 'native_thinking',
+ 'enable_thinking': True,
+ 'cannot_disable_thinking': False,
+ 'disable_sampling': False,
+ 'log_path': '/mnt/bn/brench-hl-volume-v1/self-project/CS6493_Natural_Language_Processing_Project/results/logs/run_log__20260424_101848__DeepSeek-R1-Distill-Qwen-1.5B__self_refine.log'}
+[2026-04-24T10:18:48Z] [INFO] [20260424_101848] engine_build_started {'model_name': 'deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B',
+ 'model_path': '/mnt/bn/brench-hl-volume-v1/self-project/CS6493_Natural_Language_Processing_Project/models/DeepSeek-R1-Distill-Qwen-1.5B'}
+[2026-04-24T10:19:22Z] [INFO] [20260424_101848] engine_build_completed {'model_name': 'deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B'}
+[2026-04-24T10:19:22Z] [INFO] [20260424_101848] dataset_started {'dataset_name': 'math500',
+ 'sample_count': 50,
+ 'sample_path': '/mnt/bn/brench-hl-volume-v1/self-project/CS6493_Natural_Language_Processing_Project/data/processed/math500_sample.jsonl'}
+[2026-04-24T10:22:46Z] [ERROR] [20260424_101848] sample_failed {'dataset_name': 'math500',
+ 'sample_id': 'sample-120',
+ 'sample_index': 8,
+ 'sample_count': 50,
+ 'error': 'The decoder prompt (length 32774) is longer than the maximum model '
+          'length of 32768. Make sure that `max_model_len` is no smaller than '
+          'the number of text tokens.'}
+[2026-04-24T10:32:58Z] [INFO] [20260424_101848] raw_write_started {'dataset_name': 'math500',
+ 'raw_file': '/mnt/bn/brench-hl-volume-v1/self-project/CS6493_Natural_Language_Processing_Project/results/raw/DeepSeek-R1-Distill-Qwen-1.5B__math500__self_refine__20260424_101848.jsonl'}
+[2026-04-24T10:32:58Z] [INFO] [20260424_101848] raw_write_completed {'dataset_name': 'math500',
+ 'raw_file': '/mnt/bn/brench-hl-volume-v1/self-project/CS6493_Natural_Language_Processing_Project/results/raw/DeepSeek-R1-Distill-Qwen-1.5B__math500__self_refine__20260424_101848.jsonl'}
+[2026-04-24T10:32:58Z] [INFO] [20260424_101848] evaluation_started {'dataset_name': 'math500',
+ 'raw_file': '/mnt/bn/brench-hl-volume-v1/self-project/CS6493_Natural_Language_Processing_Project/results/raw/DeepSeek-R1-Distill-Qwen-1.5B__math500__self_refine__20260424_101848.jsonl',
+ 'evaluated_file': '/mnt/bn/brench-hl-volume-v1/self-project/CS6493_Natural_Language_Processing_Project/results/evaluated/DeepSeek-R1-Distill-Qwen-1.5B__math500__self_refine__20260424_101848.jsonl',
+ 'eval_num_workers': 8}
+[2026-04-24T10:32:58Z] [INFO] [20260424_101848] dataset_completed {'dataset_name': 'math500',
+ 'raw_file': '/mnt/bn/brench-hl-volume-v1/self-project/CS6493_Natural_Language_Processing_Project/results/raw/DeepSeek-R1-Distill-Qwen-1.5B__math500__self_refine__20260424_101848.jsonl',
+ 'evaluated_file': '/mnt/bn/brench-hl-volume-v1/self-project/CS6493_Natural_Language_Processing_Project/results/evaluated/DeepSeek-R1-Distill-Qwen-1.5B__math500__self_refine__20260424_101848.jsonl',
+ 'sample_count': 50,
+ 'accuracy': 0.88}
+[2026-04-24T10:32:58Z] [INFO] [20260424_101848] dataset_started {'dataset_name': 'gsm8k',
+ 'sample_count': 50,
+ 'sample_path': '/mnt/bn/brench-hl-volume-v1/self-project/CS6493_Natural_Language_Processing_Project/data/processed/gsm8k_sample.jsonl'}
+[2026-04-24T10:38:39Z] [INFO] [20260424_101848] raw_write_started {'dataset_name': 'gsm8k',
+ 'raw_file': '/mnt/bn/brench-hl-volume-v1/self-project/CS6493_Natural_Language_Processing_Project/results/raw/DeepSeek-R1-Distill-Qwen-1.5B__gsm8k__self_refine__20260424_101848.jsonl'}
+[2026-04-24T10:38:39Z] [INFO] [20260424_101848] raw_write_completed {'dataset_name': 'gsm8k',
+ 'raw_file': '/mnt/bn/brench-hl-volume-v1/self-project/CS6493_Natural_Language_Processing_Project/results/raw/DeepSeek-R1-Distill-Qwen-1.5B__gsm8k__self_refine__20260424_101848.jsonl'}
+[2026-04-24T10:38:39Z] [INFO] [20260424_101848] evaluation_started {'dataset_name': 'gsm8k',
+ 'raw_file': '/mnt/bn/brench-hl-volume-v1/self-project/CS6493_Natural_Language_Processing_Project/results/raw/DeepSeek-R1-Distill-Qwen-1.5B__gsm8k__self_refine__20260424_101848.jsonl',
+ 'evaluated_file': '/mnt/bn/brench-hl-volume-v1/self-project/CS6493_Natural_Language_Processing_Project/results/evaluated/DeepSeek-R1-Distill-Qwen-1.5B__gsm8k__self_refine__20260424_101848.jsonl',
+ 'eval_num_workers': 8}
+[2026-04-24T10:38:39Z] [INFO] [20260424_101848] dataset_completed {'dataset_name': 'gsm8k',
+ 'raw_file': '/mnt/bn/brench-hl-volume-v1/self-project/CS6493_Natural_Language_Processing_Project/results/raw/DeepSeek-R1-Distill-Qwen-1.5B__gsm8k__self_refine__20260424_101848.jsonl',
+ 'evaluated_file': '/mnt/bn/brench-hl-volume-v1/self-project/CS6493_Natural_Language_Processing_Project/results/evaluated/DeepSeek-R1-Distill-Qwen-1.5B__gsm8k__self_refine__20260424_101848.jsonl',
+ 'sample_count': 50,
+ 'accuracy': 0.92}
+[2026-04-24T10:38:39Z] [INFO] [20260424_101848] dataset_started {'dataset_name': 'aime2024',
+ 'sample_count': 30,
+ 'sample_path': '/mnt/bn/brench-hl-volume-v1/self-project/CS6493_Natural_Language_Processing_Project/data/processed/aime2024_sample.jsonl'}
+[2026-04-24T10:41:04Z] [ERROR] [20260424_101848] sample_failed {'dataset_name': 'aime2024',
+ 'sample_id': 'sample-1',
+ 'sample_index': 2,
+ 'sample_count': 30,
+ 'error': 'The decoder prompt (length 32776) is longer than the maximum model '
+          'length of 32768. Make sure that `max_model_len` is no smaller than '
+          'the number of text tokens.'}
+[2026-04-24T10:57:37Z] [ERROR] [20260424_101848] sample_failed {'dataset_name': 'aime2024',
+ 'sample_id': 'sample-18',
+ 'sample_index': 19,
+ 'sample_count': 30,
+ 'error': 'The decoder prompt (length 32773) is longer than the maximum model '
+          'length of 32768. Make sure that `max_model_len` is no smaller than '
+          'the number of text tokens.'}
+[2026-04-24T10:59:52Z] [ERROR] [20260424_101848] sample_failed {'dataset_name': 'aime2024',
+ 'sample_id': 'sample-20',
+ 'sample_index': 21,
+ 'sample_count': 30,
+ 'error': 'The decoder prompt (length 32773) is longer than the maximum model '
+          'length of 32768. Make sure that `max_model_len` is no smaller than '
+          'the number of text tokens.'}
+[2026-04-24T11:07:02Z] [INFO] [20260424_101848] raw_write_started {'dataset_name': 'aime2024',
+ 'raw_file': '/mnt/bn/brench-hl-volume-v1/self-project/CS6493_Natural_Language_Processing_Project/results/raw/DeepSeek-R1-Distill-Qwen-1.5B__aime2024__self_refine__20260424_101848.jsonl'}
+[2026-04-24T11:07:33Z] [INFO] [20260424_101848] raw_write_completed {'dataset_name': 'aime2024',
+ 'raw_file': '/mnt/bn/brench-hl-volume-v1/self-project/CS6493_Natural_Language_Processing_Project/results/raw/DeepSeek-R1-Distill-Qwen-1.5B__aime2024__self_refine__20260424_101848.jsonl'}
+[2026-04-24T11:07:33Z] [INFO] [20260424_101848] evaluation_started {'dataset_name': 'aime2024',
+ 'raw_file': '/mnt/bn/brench-hl-volume-v1/self-project/CS6493_Natural_Language_Processing_Project/results/raw/DeepSeek-R1-Distill-Qwen-1.5B__aime2024__self_refine__20260424_101848.jsonl',
+ 'evaluated_file': '/mnt/bn/brench-hl-volume-v1/self-project/CS6493_Natural_Language_Processing_Project/results/evaluated/DeepSeek-R1-Distill-Qwen-1.5B__aime2024__self_refine__20260424_101848.jsonl',
+ 'eval_num_workers': 8}
+[2026-04-24T11:07:33Z] [INFO] [20260424_101848] dataset_completed {'dataset_name': 'aime2024',
+ 'raw_file': '/mnt/bn/brench-hl-volume-v1/self-project/CS6493_Natural_Language_Processing_Project/results/raw/DeepSeek-R1-Distill-Qwen-1.5B__aime2024__self_refine__20260424_101848.jsonl',
+ 'evaluated_file': '/mnt/bn/brench-hl-volume-v1/self-project/CS6493_Natural_Language_Processing_Project/results/evaluated/DeepSeek-R1-Distill-Qwen-1.5B__aime2024__self_refine__20260424_101848.jsonl',
+ 'sample_count': 30,
+ 'accuracy': 0.43333333333333335}
+[2026-04-24T11:07:33Z] [INFO] [20260424_101848] summary_started {'summary_dir': '/mnt/bn/brench-hl-volume-v1/self-project/CS6493_Natural_Language_Processing_Project/results/summaries'}
+[2026-04-24T11:07:33Z] [INFO] [20260424_101848] run_completed {'summary_path': '/mnt/bn/brench-hl-volume-v1/self-project/CS6493_Natural_Language_Processing_Project/results/summaries/run_summary__20260424_101848__DeepSeek-R1-Distill-Qwen-1.5B__self_refine.json',
+ 'log_path': '/mnt/bn/brench-hl-volume-v1/self-project/CS6493_Natural_Language_Processing_Project/results/logs/run_log__20260424_101848__DeepSeek-R1-Distill-Qwen-1.5B__self_refine.log',
+ 'aggregate_scores_path': '/mnt/bn/brench-hl-volume-v1/self-project/CS6493_Natural_Language_Processing_Project/results/summaries/aggregate_scores.csv',
+ 'single_metric_stats_path': '/mnt/bn/brench-hl-volume-v1/self-project/CS6493_Natural_Language_Processing_Project/results/summaries/single_metric_stats.csv'}

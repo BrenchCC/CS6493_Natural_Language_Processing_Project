@@ -43,3 +43,21 @@
 [2026-04-24T10:04:54Z] [INFO] [20260424_095215] dataset_started {'dataset_name': 'aime2024',
  'sample_count': 30,
  'sample_path': '/mnt/bn/brench-hl-volume-v1/self-project/CS6493_Natural_Language_Processing_Project/data/processed/aime2024_sample.jsonl'}
+[2026-04-24T10:19:41Z] [INFO] [20260424_095215] raw_write_started {'dataset_name': 'aime2024',
+ 'raw_file': '/mnt/bn/brench-hl-volume-v1/self-project/CS6493_Natural_Language_Processing_Project/results/raw/Qwen2.5-Math-1.5B-Instruct__aime2024__cot_few_shot__20260424_095215.jsonl'}
+[2026-04-24T10:19:41Z] [INFO] [20260424_095215] raw_write_completed {'dataset_name': 'aime2024',
+ 'raw_file': '/mnt/bn/brench-hl-volume-v1/self-project/CS6493_Natural_Language_Processing_Project/results/raw/Qwen2.5-Math-1.5B-Instruct__aime2024__cot_few_shot__20260424_095215.jsonl'}
+[2026-04-24T10:19:41Z] [INFO] [20260424_095215] evaluation_started {'dataset_name': 'aime2024',
+ 'raw_file': '/mnt/bn/brench-hl-volume-v1/self-project/CS6493_Natural_Language_Processing_Project/results/raw/Qwen2.5-Math-1.5B-Instruct__aime2024__cot_few_shot__20260424_095215.jsonl',
+ 'evaluated_file': '/mnt/bn/brench-hl-volume-v1/self-project/CS6493_Natural_Language_Processing_Project/results/evaluated/Qwen2.5-Math-1.5B-Instruct__aime2024__cot_few_shot__20260424_095215.jsonl',
+ 'eval_num_workers': 8}
+[2026-04-24T10:19:41Z] [INFO] [20260424_095215] dataset_completed {'dataset_name': 'aime2024',
+ 'raw_file': '/mnt/bn/brench-hl-volume-v1/self-project/CS6493_Natural_Language_Processing_Project/results/raw/Qwen2.5-Math-1.5B-Instruct__aime2024__cot_few_shot__20260424_095215.jsonl',
+ 'evaluated_file': '/mnt/bn/brench-hl-volume-v1/self-project/CS6493_Natural_Language_Processing_Project/results/evaluated/Qwen2.5-Math-1.5B-Instruct__aime2024__cot_few_shot__20260424_095215.jsonl',
+ 'sample_count': 30,
+ 'accuracy': 0.0}
+[2026-04-24T10:19:41Z] [INFO] [20260424_095215] summary_started {'summary_dir': '/mnt/bn/brench-hl-volume-v1/self-project/CS6493_Natural_Language_Processing_Project/results/summaries'}
+[2026-04-24T10:19:41Z] [INFO] [20260424_095215] run_completed {'summary_path': '/mnt/bn/brench-hl-volume-v1/self-project/CS6493_Natural_Language_Processing_Project/results/summaries/run_summary__20260424_095215__Qwen2.5-Math-1.5B-Instruct__cot_few_shot.json',
+ 'log_path': '/mnt/bn/brench-hl-volume-v1/self-project/CS6493_Natural_Language_Processing_Project/results/logs/run_log__20260424_095215__Qwen2.5-Math-1.5B-Instruct__cot_few_shot.log',
+ 'aggregate_scores_path': '/mnt/bn/brench-hl-volume-v1/self-project/CS6493_Natural_Language_Processing_Project/results/summaries/aggregate_scores.csv',
+ 'single_metric_stats_path': '/mnt/bn/brench-hl-volume-v1/self-project/CS6493_Natural_Language_Processing_Project/results/summaries/single_metric_stats.csv'}
