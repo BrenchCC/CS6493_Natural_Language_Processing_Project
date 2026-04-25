@@ -1,9 +1,0 @@
-[2026-04-24T11:38:20Z] [INFO] [20260424_113820] run_started {'model_name': 'Qwen/Qwen2.5-Math-1.5B-Instruct',
- 'model_alias': 'Qwen2.5-Math-1.5B-Instruct',
- 'method_name': 'tir',
- 'reasoning_mode': 'prompt_cot',
- 'cannot_disable_thinking': False,
- 'disable_sampling': False,
- 'log_path': '/mnt/bn/brench-hl-volume-v1/self-project/CS6493_Natural_Language_Processing_Project/results/logs/run_log__20260424_113820__Qwen2.5-Math-1.5B-Instruct__tir.log'}
-[2026-04-24T11:38:20Z] [INFO] [20260424_113820] engine_build_started {'model_name': 'Qwen/Qwen2.5-Math-1.5B-Instruct',
- 'model_path': '/mnt/bn/brench-hl-volume-v1/self-project/CS6493_Natural_Language_Processing_Project/models/Qwen2.5-Math-1.5B-Instruct'}
