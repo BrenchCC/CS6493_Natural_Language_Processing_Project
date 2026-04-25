@@ -43,6 +43,16 @@ method_configs:
     top_p: 1.0
     max_tokens: 32768
     num_examples: 3
+  plan_solve:
+    temperature: 0.0
+    top_p: 1.0
+    max_tokens: 32768
+    max_plan_steps: 5
+  self_ask:
+    temperature: 0.0
+    top_p: 1.0
+    max_tokens: 32768
+    max_self_questions: 5
   self_refine:
     temperature: 0.0
     top_p: 1.0

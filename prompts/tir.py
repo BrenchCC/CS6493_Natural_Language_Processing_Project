@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
+import os
 import re
+import shutil
 import subprocess
-import sys
 from typing import Any, Dict, List, Tuple
 
 from .base import PromptMethod
@@ -48,10 +49,14 @@ def _extract_output_after(text: str, end_idx: int) -> str:
 class ToolIntegratedReasoning(PromptMethod):
     """Prompt the model to interleave reasoning with Python snippets, executing them when needed."""
 
+    EXECUTION_CONDA_ENV = "llm_train"
+
     DEFAULT_SYSTEM_PROMPT = (
         "You are a mathematical reasoning assistant that can mix natural-language reasoning with Python snippets. "
         "When you need to compute, write a Python snippet wrapped in ```python fences and STOP. "
         "I will run the code and send you back the execution result wrapped in ```output fences; then continue. "
+        "Use only Python standard-library modules unless a third-party package is clearly necessary; if you need one, prefer `math`, `fractions`, `decimal`, and other standard tools first, and only use `sympy`, `numpy`, or `scipy` when essential. "
+        "Do not assume any other third-party package is installed. "
         "Do not explain the code output in prose. Do not repeat the answer. Do not give any provisional or intermediate answer before the final line. "
         "End with a final line formatted exactly as `Final Answer: \\boxed{...}`."
     )
@@ -62,7 +67,7 @@ class ToolIntegratedReasoning(PromptMethod):
 Problem:
 {problem}
 
-Please solve the problem step by step. Use Python code blocks only when useful, keep the tool-usage format consistent with the references, do not explain code results in prose, do not repeat the final answer, do not give any provisional or intermediate answer, and end with a final line formatted exactly as `Final Answer: \\boxed{{...}}`."""
+Please solve the problem step by step. Use Python code blocks only when useful, keep the tool-usage format consistent with the references, prefer Python standard-library tools, and avoid third-party packages unless they are truly necessary. If a third-party package is needed, only rely on `sympy`, `numpy`, or `scipy`; do not assume any other package is available. Do not explain code results in prose, do not repeat the final answer, do not give any provisional or intermediate answer, and end with a final line formatted exactly as `Final Answer: \\boxed{{...}}`."""
 
     @property
     def name(self) -> str:
@@ -89,6 +94,17 @@ Please solve the problem step by step. Use Python code blocks only when useful, 
             problem = problem,
         )
 
+    def _build_python_command(self, wrapped: str) -> Tuple[List[str], str, str]:
+        """Build the interpreter command for the configured conda environment."""
+        conda_exe = os.environ.get("CONDA_EXE") or shutil.which("conda") or "conda"
+        conda_root = os.path.dirname(os.path.dirname(conda_exe)) if os.path.isabs(conda_exe) else ""
+        env_python = os.path.join(conda_root, "envs", self.EXECUTION_CONDA_ENV, "bin", "python") if conda_root else ""
+
+        if env_python and os.path.exists(env_python):
+            return [env_python, "-c", wrapped], "conda_env_python", env_python
+
+        return ["conda", "run", "-n", self.EXECUTION_CONDA_ENV, "python", "-c", wrapped], "conda_run", self.EXECUTION_CONDA_ENV
+
     def _execute_python(self, code: str, timeout_seconds: int) -> Dict[str, Any]:
         """Execute one python block (isolated subprocess) and return a structured record."""
         try:
@@ -111,8 +127,10 @@ Please solve the problem step by step. Use Python code blocks only when useful, 
                 "else:\n"
                 "    exec(compile(tree, '<tir>', 'exec'), _env, _env)\n"
             )
+            command, executor, executor_target = self._build_python_command(wrapped)
+            command_display = command[:-1] + ["<wrapped_python>"]
             completed = subprocess.run(
-                [sys.executable, "-c", wrapped],
+                command,
                 capture_output = True,
                 text = True,
                 timeout = timeout_seconds,
@@ -122,7 +140,7 @@ Please solve the problem step by step. Use Python code blocks only when useful, 
             returncode = int(completed.returncode)
             ok = returncode == 0
             # Prefer stdout for normal runs; otherwise surface stderr.
-            output_text = stdout if stdout else stderr
+            output_text = stdout if ok else (stdout if stdout else stderr)
             if not output_text and not ok:
                 output_text = f"Non-zero return code: {returncode}"
             return {
@@ -132,6 +150,10 @@ Please solve the problem step by step. Use Python code blocks only when useful, 
                 "stderr": stderr,
                 "returncode": returncode,
                 "ok": ok,
+                "executor": executor,
+                "executor_env": self.EXECUTION_CONDA_ENV,
+                "executor_target": executor_target,
+                "command": command_display,
                 "output": output_text,
             }
         except subprocess.TimeoutExpired as exc:
@@ -145,7 +167,23 @@ Please solve the problem step by step. Use Python code blocks only when useful, 
                 "returncode": None,
                 "ok": False,
                 "timeout": True,
+                "executor": "conda_env_python",
+                "executor_env": self.EXECUTION_CONDA_ENV,
+                "command": ["<conda_env_python>", "-c", "<wrapped_python>"],
                 "output": f"Timeout after {timeout_seconds}s",
+            }
+        except FileNotFoundError as exc:
+            return {
+                "code": code,
+                "wrapped": True,
+                "stdout": "",
+                "stderr": str(exc),
+                "returncode": None,
+                "ok": False,
+                "executor": "conda",
+                "executor_env": self.EXECUTION_CONDA_ENV,
+                "command": ["conda", "run", "-n", self.EXECUTION_CONDA_ENV, "python", "-c", "<wrapped_python>"],
+                "output": f"Failed to launch conda environment `{self.EXECUTION_CONDA_ENV}`: {exc}",
             }
 
     def run(self, engine: Any, sample: Dict[str, Any], **kwargs: Any) -> Dict[str, Any]:
@@ -252,6 +290,8 @@ Please solve the problem step by step. Use Python code blocks only when useful, 
                 "decode_strategy": decode_strategy,
                 "max_tool_rounds": max_tool_rounds,
                 "python_timeout": timeout_seconds,
+                "python_executor": "conda_env_python",
+                "python_executor_env": self.EXECUTION_CONDA_ENV,
                 "executed_blocks": executed_blocks,
             },
         }

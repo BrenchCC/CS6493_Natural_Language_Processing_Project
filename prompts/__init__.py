@@ -5,6 +5,8 @@ from typing import Dict
 
 from .cot_zero import CoTZero
 from .cot_few_shot import CoTFewShot
+from .plan_solve import PlanAndSolve
+from .self_ask import SelfAsk
 from .self_refine import SelfRefine
 from .self_consistent import SelfConsistency
 from .tir import ToolIntegratedReasoning
@@ -13,6 +15,8 @@ from .tir import ToolIntegratedReasoning
 METHOD_REGISTRY = {
     "cot_zero": CoTZero,
     "cot_few_shot": CoTFewShot,
+    "plan_solve": PlanAndSolve,
+    "self_ask": SelfAsk,
     "self_refine": SelfRefine,
     "self_consistency": SelfConsistency,
     "tir": ToolIntegratedReasoning,
