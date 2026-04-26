@@ -136,7 +136,19 @@ def run_one_model_one_method_all_datasets(
 ) -> Dict[str, Any]:
     """Run one `(model, method)` pair across all selected datasets."""
     config = load_experiment_config(config_path)
-    datasets = filter_named_items(config.get("datasets", []), dataset_filter or [])
+    configured_datasets = config.get("datasets", [])
+    datasets = filter_named_items(configured_datasets, dataset_filter or [])
+    configured_dataset_names = [str(dataset.get("name", "")) for dataset in configured_datasets if dataset.get("name")]
+    if not datasets:
+        if dataset_filter:
+            raise ValueError(
+                "No datasets matched the requested filter "
+                f"{dataset_filter}. Available datasets: {configured_dataset_names}"
+            )
+        raise ValueError(
+            "No datasets are configured for this run. "
+            f"Available datasets in config: {configured_dataset_names}"
+        )
     method_config = config.get("method_configs", {}).get(method_name, {})
     method = get_prompt_method(method_name, method_config = method_config)
     run_id = datetime.utcnow().strftime("%Y%m%d_%H%M%S")

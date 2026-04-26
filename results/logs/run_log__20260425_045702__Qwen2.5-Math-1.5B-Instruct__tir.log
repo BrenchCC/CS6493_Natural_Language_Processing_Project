@@ -1,0 +1,25 @@
+[2026-04-25T06:03:31Z] [ERROR] [20260425_045702] sample_failed {'dataset_name': 'aime2024',
+ 'sample_id': 'sample-23',
+ 'sample_index': 24,
+ 'sample_count': 30,
+ 'error': 'The decoder prompt (length 39918577) is longer than the maximum '
+          'model length of 32768. Make sure that `max_model_len` is no smaller '
+          'than the number of text tokens.'}
+[2026-04-25T06:08:33Z] [INFO] [20260425_045702] raw_write_started {'dataset_name': 'aime2024',
+ 'raw_file': '/mnt/bn/brench-hl-volume-v1/self-project/CS6493_Natural_Language_Processing_Project/results/raw/Qwen2.5-Math-1.5B-Instruct__aime2024__tir__20260425_045702.jsonl'}
+[2026-04-25T06:08:33Z] [INFO] [20260425_045702] raw_write_completed {'dataset_name': 'aime2024',
+ 'raw_file': '/mnt/bn/brench-hl-volume-v1/self-project/CS6493_Natural_Language_Processing_Project/results/raw/Qwen2.5-Math-1.5B-Instruct__aime2024__tir__20260425_045702.jsonl'}
+[2026-04-25T06:08:33Z] [INFO] [20260425_045702] evaluation_started {'dataset_name': 'aime2024',
+ 'raw_file': '/mnt/bn/brench-hl-volume-v1/self-project/CS6493_Natural_Language_Processing_Project/results/raw/Qwen2.5-Math-1.5B-Instruct__aime2024__tir__20260425_045702.jsonl',
+ 'evaluated_file': '/mnt/bn/brench-hl-volume-v1/self-project/CS6493_Natural_Language_Processing_Project/results/evaluated/Qwen2.5-Math-1.5B-Instruct__aime2024__tir__20260425_045702.jsonl',
+ 'eval_num_workers': 8}
+[2026-04-25T06:08:34Z] [INFO] [20260425_045702] dataset_completed {'dataset_name': 'aime2024',
+ 'raw_file': '/mnt/bn/brench-hl-volume-v1/self-project/CS6493_Natural_Language_Processing_Project/results/raw/Qwen2.5-Math-1.5B-Instruct__aime2024__tir__20260425_045702.jsonl',
+ 'evaluated_file': '/mnt/bn/brench-hl-volume-v1/self-project/CS6493_Natural_Language_Processing_Project/results/evaluated/Qwen2.5-Math-1.5B-Instruct__aime2024__tir__20260425_045702.jsonl',
+ 'sample_count': 30,
+ 'accuracy': 0.0}
+[2026-04-25T06:08:34Z] [INFO] [20260425_045702] summary_started {'summary_dir': '/mnt/bn/brench-hl-volume-v1/self-project/CS6493_Natural_Language_Processing_Project/results/summaries'}
+[2026-04-25T06:08:35Z] [INFO] [20260425_045702] run_completed {'summary_path': '/mnt/bn/brench-hl-volume-v1/self-project/CS6493_Natural_Language_Processing_Project/results/summaries/run_summary__20260425_045702__Qwen2.5-Math-1.5B-Instruct__tir.json',
+ 'log_path': '/mnt/bn/brench-hl-volume-v1/self-project/CS6493_Natural_Language_Processing_Project/results/logs/run_log__20260425_045702__Qwen2.5-Math-1.5B-Instruct__tir.log',
+ 'aggregate_scores_path': '/mnt/bn/brench-hl-volume-v1/self-project/CS6493_Natural_Language_Processing_Project/results/summaries/aggregate_scores.csv',
+ 'single_metric_stats_path': '/mnt/bn/brench-hl-volume-v1/self-project/CS6493_Natural_Language_Processing_Project/results/summaries/single_metric_stats.csv'}

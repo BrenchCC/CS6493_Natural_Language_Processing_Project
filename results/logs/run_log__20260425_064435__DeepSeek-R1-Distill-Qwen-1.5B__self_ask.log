@@ -1,0 +1,64 @@
+[2026-04-25T06:44:35Z] [INFO] [20260425_064435] run_started {'model_name': 'deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B',
+ 'model_alias': 'DeepSeek-R1-Distill-Qwen-1.5B',
+ 'method_name': 'self_ask',
+ 'reasoning_mode': 'native_thinking',
+ 'enable_thinking': True,
+ 'cannot_disable_thinking': False,
+ 'disable_sampling': False,
+ 'log_path': '/mnt/bn/brench-hl-volume-v1/self-project/CS6493_Natural_Language_Processing_Project/results/logs/run_log__20260425_064435__DeepSeek-R1-Distill-Qwen-1.5B__self_ask.log'}
+[2026-04-25T06:44:35Z] [INFO] [20260425_064435] engine_build_started {'model_name': 'deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B',
+ 'model_path': '/mnt/bn/brench-hl-volume-v1/self-project/CS6493_Natural_Language_Processing_Project/models/DeepSeek-R1-Distill-Qwen-1.5B'}
+[2026-04-25T06:45:09Z] [INFO] [20260425_064435] engine_build_completed {'model_name': 'deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B'}
+[2026-04-25T06:45:09Z] [INFO] [20260425_064435] dataset_started {'dataset_name': 'math500',
+ 'sample_count': 50,
+ 'sample_path': '/mnt/bn/brench-hl-volume-v1/self-project/CS6493_Natural_Language_Processing_Project/data/processed/math500_sample.jsonl'}
+[2026-04-25T06:47:27Z] [INFO] [20260425_064435] raw_write_started {'dataset_name': 'math500',
+ 'raw_file': '/mnt/bn/brench-hl-volume-v1/self-project/CS6493_Natural_Language_Processing_Project/results/raw/DeepSeek-R1-Distill-Qwen-1.5B__math500__self_ask__20260425_064435.jsonl'}
+[2026-04-25T06:47:27Z] [INFO] [20260425_064435] raw_write_completed {'dataset_name': 'math500',
+ 'raw_file': '/mnt/bn/brench-hl-volume-v1/self-project/CS6493_Natural_Language_Processing_Project/results/raw/DeepSeek-R1-Distill-Qwen-1.5B__math500__self_ask__20260425_064435.jsonl'}
+[2026-04-25T06:47:27Z] [INFO] [20260425_064435] evaluation_started {'dataset_name': 'math500',
+ 'raw_file': '/mnt/bn/brench-hl-volume-v1/self-project/CS6493_Natural_Language_Processing_Project/results/raw/DeepSeek-R1-Distill-Qwen-1.5B__math500__self_ask__20260425_064435.jsonl',
+ 'evaluated_file': '/mnt/bn/brench-hl-volume-v1/self-project/CS6493_Natural_Language_Processing_Project/results/evaluated/DeepSeek-R1-Distill-Qwen-1.5B__math500__self_ask__20260425_064435.jsonl',
+ 'eval_num_workers': 8}
+[2026-04-25T06:47:27Z] [INFO] [20260425_064435] dataset_completed {'dataset_name': 'math500',
+ 'raw_file': '/mnt/bn/brench-hl-volume-v1/self-project/CS6493_Natural_Language_Processing_Project/results/raw/DeepSeek-R1-Distill-Qwen-1.5B__math500__self_ask__20260425_064435.jsonl',
+ 'evaluated_file': '/mnt/bn/brench-hl-volume-v1/self-project/CS6493_Natural_Language_Processing_Project/results/evaluated/DeepSeek-R1-Distill-Qwen-1.5B__math500__self_ask__20260425_064435.jsonl',
+ 'sample_count': 50,
+ 'accuracy': 0.7}
+[2026-04-25T06:47:27Z] [INFO] [20260425_064435] dataset_started {'dataset_name': 'gsm8k',
+ 'sample_count': 50,
+ 'sample_path': '/mnt/bn/brench-hl-volume-v1/self-project/CS6493_Natural_Language_Processing_Project/data/processed/gsm8k_sample.jsonl'}
+[2026-04-25T06:49:09Z] [INFO] [20260425_064435] raw_write_started {'dataset_name': 'gsm8k',
+ 'raw_file': '/mnt/bn/brench-hl-volume-v1/self-project/CS6493_Natural_Language_Processing_Project/results/raw/DeepSeek-R1-Distill-Qwen-1.5B__gsm8k__self_ask__20260425_064435.jsonl'}
+[2026-04-25T06:49:09Z] [INFO] [20260425_064435] raw_write_completed {'dataset_name': 'gsm8k',
+ 'raw_file': '/mnt/bn/brench-hl-volume-v1/self-project/CS6493_Natural_Language_Processing_Project/results/raw/DeepSeek-R1-Distill-Qwen-1.5B__gsm8k__self_ask__20260425_064435.jsonl'}
+[2026-04-25T06:49:09Z] [INFO] [20260425_064435] evaluation_started {'dataset_name': 'gsm8k',
+ 'raw_file': '/mnt/bn/brench-hl-volume-v1/self-project/CS6493_Natural_Language_Processing_Project/results/raw/DeepSeek-R1-Distill-Qwen-1.5B__gsm8k__self_ask__20260425_064435.jsonl',
+ 'evaluated_file': '/mnt/bn/brench-hl-volume-v1/self-project/CS6493_Natural_Language_Processing_Project/results/evaluated/DeepSeek-R1-Distill-Qwen-1.5B__gsm8k__self_ask__20260425_064435.jsonl',
+ 'eval_num_workers': 8}
+[2026-04-25T06:49:09Z] [INFO] [20260425_064435] dataset_completed {'dataset_name': 'gsm8k',
+ 'raw_file': '/mnt/bn/brench-hl-volume-v1/self-project/CS6493_Natural_Language_Processing_Project/results/raw/DeepSeek-R1-Distill-Qwen-1.5B__gsm8k__self_ask__20260425_064435.jsonl',
+ 'evaluated_file': '/mnt/bn/brench-hl-volume-v1/self-project/CS6493_Natural_Language_Processing_Project/results/evaluated/DeepSeek-R1-Distill-Qwen-1.5B__gsm8k__self_ask__20260425_064435.jsonl',
+ 'sample_count': 50,
+ 'accuracy': 0.82}
+[2026-04-25T06:49:09Z] [INFO] [20260425_064435] dataset_started {'dataset_name': 'aime2024',
+ 'sample_count': 30,
+ 'sample_path': '/mnt/bn/brench-hl-volume-v1/self-project/CS6493_Natural_Language_Processing_Project/data/processed/aime2024_sample.jsonl'}
+[2026-04-25T06:55:15Z] [INFO] [20260425_064435] raw_write_started {'dataset_name': 'aime2024',
+ 'raw_file': '/mnt/bn/brench-hl-volume-v1/self-project/CS6493_Natural_Language_Processing_Project/results/raw/DeepSeek-R1-Distill-Qwen-1.5B__aime2024__self_ask__20260425_064435.jsonl'}
+[2026-04-25T06:55:15Z] [INFO] [20260425_064435] raw_write_completed {'dataset_name': 'aime2024',
+ 'raw_file': '/mnt/bn/brench-hl-volume-v1/self-project/CS6493_Natural_Language_Processing_Project/results/raw/DeepSeek-R1-Distill-Qwen-1.5B__aime2024__self_ask__20260425_064435.jsonl'}
+[2026-04-25T06:55:15Z] [INFO] [20260425_064435] evaluation_started {'dataset_name': 'aime2024',
+ 'raw_file': '/mnt/bn/brench-hl-volume-v1/self-project/CS6493_Natural_Language_Processing_Project/results/raw/DeepSeek-R1-Distill-Qwen-1.5B__aime2024__self_ask__20260425_064435.jsonl',
+ 'evaluated_file': '/mnt/bn/brench-hl-volume-v1/self-project/CS6493_Natural_Language_Processing_Project/results/evaluated/DeepSeek-R1-Distill-Qwen-1.5B__aime2024__self_ask__20260425_064435.jsonl',
+ 'eval_num_workers': 8}
+[2026-04-25T06:55:16Z] [INFO] [20260425_064435] dataset_completed {'dataset_name': 'aime2024',
+ 'raw_file': '/mnt/bn/brench-hl-volume-v1/self-project/CS6493_Natural_Language_Processing_Project/results/raw/DeepSeek-R1-Distill-Qwen-1.5B__aime2024__self_ask__20260425_064435.jsonl',
+ 'evaluated_file': '/mnt/bn/brench-hl-volume-v1/self-project/CS6493_Natural_Language_Processing_Project/results/evaluated/DeepSeek-R1-Distill-Qwen-1.5B__aime2024__self_ask__20260425_064435.jsonl',
+ 'sample_count': 30,
+ 'accuracy': 0.13333333333333333}
+[2026-04-25T06:55:16Z] [INFO] [20260425_064435] summary_started {'summary_dir': '/mnt/bn/brench-hl-volume-v1/self-project/CS6493_Natural_Language_Processing_Project/results/summaries'}
+[2026-04-25T06:55:16Z] [INFO] [20260425_064435] run_completed {'summary_path': '/mnt/bn/brench-hl-volume-v1/self-project/CS6493_Natural_Language_Processing_Project/results/summaries/run_summary__20260425_064435__DeepSeek-R1-Distill-Qwen-1.5B__self_ask.json',
+ 'log_path': '/mnt/bn/brench-hl-volume-v1/self-project/CS6493_Natural_Language_Processing_Project/results/logs/run_log__20260425_064435__DeepSeek-R1-Distill-Qwen-1.5B__self_ask.log',
+ 'aggregate_scores_path': '/mnt/bn/brench-hl-volume-v1/self-project/CS6493_Natural_Language_Processing_Project/results/summaries/aggregate_scores.csv',
+ 'single_metric_stats_path': '/mnt/bn/brench-hl-volume-v1/self-project/CS6493_Natural_Language_Processing_Project/results/summaries/single_metric_stats.csv'}
