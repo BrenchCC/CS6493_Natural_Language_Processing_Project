@@ -1,0 +1,72 @@
+[2026-05-02T18:08:35Z] [INFO] [20260502_180835] run_started {'backend': 'api',
+ 'model_name': 'Qwen/Qwen2.5-Math-1.5B-Instruct',
+ 'model_alias': 'Qwen2.5-Math-1.5B-Instruct',
+ 'method_name': 'plan_solve',
+ 'reasoning_mode': 'api_ark',
+ 'cannot_disable_thinking': False,
+ 'disable_sampling': False,
+ 'log_path': '/Users/brench/brench_project_collections/School_Project/CS6493_Natural_Language_Processing_Project/results/logs/run_log__20260502_180835__Qwen2.5-Math-1.5B-Instruct__plan_solve.log'}
+[2026-05-02T18:08:35Z] [INFO] [20260502_180835] engine_build_started {'model_name': 'Qwen/Qwen2.5-Math-1.5B-Instruct', 'backend': 'api'}
+[2026-05-02T18:08:35Z] [INFO] [20260502_180835] engine_build_completed {'model_name': 'Qwen/Qwen2.5-Math-1.5B-Instruct',
+ 'backend': 'api',
+ 'api_mode': 'ark',
+ 'api_identifier': 'Doubao-1.5-pro-32k-250115',
+ 'api_model_env': 'LLM_MODEL',
+ 'api_base_url_env': 'LLM_API_BASE_URL',
+ 'api_rpm': 30000,
+ 'api_tpm': 5000000,
+ 'api_window_s': 60.0}
+[2026-05-02T18:08:35Z] [INFO] [20260502_180835] api_parallel_inference_configured {'num_workers': 8, 'rpm': 30000, 'tpm': 5000000, 'window_s': 60.0}
+[2026-05-02T18:08:35Z] [INFO] [20260502_180835] dataset_started {'dataset_name': 'math500',
+ 'sample_count': 50,
+ 'sample_path': '/Users/brench/brench_project_collections/School_Project/CS6493_Natural_Language_Processing_Project/data/processed/math500_sample.jsonl'}
+[2026-05-02T18:10:38Z] [INFO] [20260502_180835] raw_write_started {'dataset_name': 'math500',
+ 'raw_file': '/Users/brench/brench_project_collections/School_Project/CS6493_Natural_Language_Processing_Project/results/raw/Qwen2.5-Math-1.5B-Instruct__math500__plan_solve__20260502_180835.jsonl'}
+[2026-05-02T18:10:38Z] [INFO] [20260502_180835] raw_write_completed {'dataset_name': 'math500',
+ 'raw_file': '/Users/brench/brench_project_collections/School_Project/CS6493_Natural_Language_Processing_Project/results/raw/Qwen2.5-Math-1.5B-Instruct__math500__plan_solve__20260502_180835.jsonl'}
+[2026-05-02T18:10:38Z] [INFO] [20260502_180835] evaluation_started {'dataset_name': 'math500',
+ 'raw_file': '/Users/brench/brench_project_collections/School_Project/CS6493_Natural_Language_Processing_Project/results/raw/Qwen2.5-Math-1.5B-Instruct__math500__plan_solve__20260502_180835.jsonl',
+ 'evaluated_file': '/Users/brench/brench_project_collections/School_Project/CS6493_Natural_Language_Processing_Project/results/evaluated/Qwen2.5-Math-1.5B-Instruct__math500__plan_solve__20260502_180835.jsonl',
+ 'eval_num_workers': 8}
+[2026-05-02T18:10:38Z] [INFO] [20260502_180835] dataset_completed {'dataset_name': 'math500',
+ 'raw_file': '/Users/brench/brench_project_collections/School_Project/CS6493_Natural_Language_Processing_Project/results/raw/Qwen2.5-Math-1.5B-Instruct__math500__plan_solve__20260502_180835.jsonl',
+ 'evaluated_file': '/Users/brench/brench_project_collections/School_Project/CS6493_Natural_Language_Processing_Project/results/evaluated/Qwen2.5-Math-1.5B-Instruct__math500__plan_solve__20260502_180835.jsonl',
+ 'sample_count': 50,
+ 'accuracy': 0.9}
+[2026-05-02T18:10:38Z] [INFO] [20260502_180835] dataset_started {'dataset_name': 'gsm8k',
+ 'sample_count': 50,
+ 'sample_path': '/Users/brench/brench_project_collections/School_Project/CS6493_Natural_Language_Processing_Project/data/processed/gsm8k_sample.jsonl'}
+[2026-05-02T18:11:41Z] [INFO] [20260502_180835] raw_write_started {'dataset_name': 'gsm8k',
+ 'raw_file': '/Users/brench/brench_project_collections/School_Project/CS6493_Natural_Language_Processing_Project/results/raw/Qwen2.5-Math-1.5B-Instruct__gsm8k__plan_solve__20260502_180835.jsonl'}
+[2026-05-02T18:11:41Z] [INFO] [20260502_180835] raw_write_completed {'dataset_name': 'gsm8k',
+ 'raw_file': '/Users/brench/brench_project_collections/School_Project/CS6493_Natural_Language_Processing_Project/results/raw/Qwen2.5-Math-1.5B-Instruct__gsm8k__plan_solve__20260502_180835.jsonl'}
+[2026-05-02T18:11:41Z] [INFO] [20260502_180835] evaluation_started {'dataset_name': 'gsm8k',
+ 'raw_file': '/Users/brench/brench_project_collections/School_Project/CS6493_Natural_Language_Processing_Project/results/raw/Qwen2.5-Math-1.5B-Instruct__gsm8k__plan_solve__20260502_180835.jsonl',
+ 'evaluated_file': '/Users/brench/brench_project_collections/School_Project/CS6493_Natural_Language_Processing_Project/results/evaluated/Qwen2.5-Math-1.5B-Instruct__gsm8k__plan_solve__20260502_180835.jsonl',
+ 'eval_num_workers': 8}
+[2026-05-02T18:11:41Z] [INFO] [20260502_180835] dataset_completed {'dataset_name': 'gsm8k',
+ 'raw_file': '/Users/brench/brench_project_collections/School_Project/CS6493_Natural_Language_Processing_Project/results/raw/Qwen2.5-Math-1.5B-Instruct__gsm8k__plan_solve__20260502_180835.jsonl',
+ 'evaluated_file': '/Users/brench/brench_project_collections/School_Project/CS6493_Natural_Language_Processing_Project/results/evaluated/Qwen2.5-Math-1.5B-Instruct__gsm8k__plan_solve__20260502_180835.jsonl',
+ 'sample_count': 50,
+ 'accuracy': 0.96}
+[2026-05-02T18:11:41Z] [INFO] [20260502_180835] dataset_started {'dataset_name': 'aime2024',
+ 'sample_count': 30,
+ 'sample_path': '/Users/brench/brench_project_collections/School_Project/CS6493_Natural_Language_Processing_Project/data/processed/aime2024_sample.jsonl'}
+[2026-05-02T18:16:32Z] [INFO] [20260502_180835] raw_write_started {'dataset_name': 'aime2024',
+ 'raw_file': '/Users/brench/brench_project_collections/School_Project/CS6493_Natural_Language_Processing_Project/results/raw/Qwen2.5-Math-1.5B-Instruct__aime2024__plan_solve__20260502_180835.jsonl'}
+[2026-05-02T18:16:32Z] [INFO] [20260502_180835] raw_write_completed {'dataset_name': 'aime2024',
+ 'raw_file': '/Users/brench/brench_project_collections/School_Project/CS6493_Natural_Language_Processing_Project/results/raw/Qwen2.5-Math-1.5B-Instruct__aime2024__plan_solve__20260502_180835.jsonl'}
+[2026-05-02T18:16:32Z] [INFO] [20260502_180835] evaluation_started {'dataset_name': 'aime2024',
+ 'raw_file': '/Users/brench/brench_project_collections/School_Project/CS6493_Natural_Language_Processing_Project/results/raw/Qwen2.5-Math-1.5B-Instruct__aime2024__plan_solve__20260502_180835.jsonl',
+ 'evaluated_file': '/Users/brench/brench_project_collections/School_Project/CS6493_Natural_Language_Processing_Project/results/evaluated/Qwen2.5-Math-1.5B-Instruct__aime2024__plan_solve__20260502_180835.jsonl',
+ 'eval_num_workers': 8}
+[2026-05-02T18:16:32Z] [INFO] [20260502_180835] dataset_completed {'dataset_name': 'aime2024',
+ 'raw_file': '/Users/brench/brench_project_collections/School_Project/CS6493_Natural_Language_Processing_Project/results/raw/Qwen2.5-Math-1.5B-Instruct__aime2024__plan_solve__20260502_180835.jsonl',
+ 'evaluated_file': '/Users/brench/brench_project_collections/School_Project/CS6493_Natural_Language_Processing_Project/results/evaluated/Qwen2.5-Math-1.5B-Instruct__aime2024__plan_solve__20260502_180835.jsonl',
+ 'sample_count': 30,
+ 'accuracy': 0.4}
+[2026-05-02T18:16:32Z] [INFO] [20260502_180835] summary_started {'summary_dir': '/Users/brench/brench_project_collections/School_Project/CS6493_Natural_Language_Processing_Project/results/summaries'}
+[2026-05-02T18:16:33Z] [INFO] [20260502_180835] run_completed {'summary_path': '/Users/brench/brench_project_collections/School_Project/CS6493_Natural_Language_Processing_Project/results/summaries/run_summary__20260502_180835__Qwen2.5-Math-1.5B-Instruct__plan_solve.json',
+ 'log_path': '/Users/brench/brench_project_collections/School_Project/CS6493_Natural_Language_Processing_Project/results/logs/run_log__20260502_180835__Qwen2.5-Math-1.5B-Instruct__plan_solve.log',
+ 'aggregate_scores_path': '/Users/brench/brench_project_collections/School_Project/CS6493_Natural_Language_Processing_Project/results/summaries/aggregate_scores.csv',
+ 'single_metric_stats_path': '/Users/brench/brench_project_collections/School_Project/CS6493_Natural_Language_Processing_Project/results/summaries/single_metric_stats.csv'}

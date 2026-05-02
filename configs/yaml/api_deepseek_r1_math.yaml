@@ -16,9 +16,9 @@ api:
   identifier_env: LLM_IDENTIFIER
   timeout: 300
   print_stream: false
-  max_workers: 2
-  rpm: 0
-  tpm: 0
+  max_workers: 8
+  rpm: 30000
+  tpm: 5000000
   window_s: 60.0
 
 models:

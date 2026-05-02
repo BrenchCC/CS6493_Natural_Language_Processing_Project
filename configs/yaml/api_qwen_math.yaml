@@ -46,16 +46,16 @@ method_configs:
   plan_solve:
     temperature: 0.0
     top_p: 1.0
-    max_tokens: 32768
+    max_tokens: 16384
     max_plan_steps: 5
   self_ask:
     temperature: 0.0
     top_p: 1.0
-    max_tokens: 32768
+    max_tokens: 16384
     max_self_questions: 5
   tir:
     temperature: 0.0
     top_p: 1.0
-    max_tokens: 32768
+    max_tokens: 16384
     repetition_penalty: 1.2
     execution_conda_env: cs_hw
