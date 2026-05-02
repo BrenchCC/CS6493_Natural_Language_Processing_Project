@@ -1,2 +1,1 @@
-CUDA_VISIBLE_DEVICES=2,3 bash scripts/infer/run_single_model_all.sh configs/yaml/deepseek_r1_math.yaml "deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B" 50 "" tir,plan_solve,self_ask
-CUDA_VISIBLE_DEVICES=2,3 python /mnt/bn/brench-hl-volume-v1/aigc/llm-train-playground/gpu_occupy.py
+bash scripts/infer/run_local_deepseek_reasoning.sh

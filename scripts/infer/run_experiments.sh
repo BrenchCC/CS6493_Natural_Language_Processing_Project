@@ -6,10 +6,12 @@ MODELS="${2:-}"
 METHODS="${3:-}"
 DATASETS="${4:-}"
 MAX_SAMPLES="${5:-0}"
+BACKEND="${6:-}"
 
 python -m infer_exp.run_experiments \
   --config "$CONFIG_PATH" \
   --models "$MODELS" \
   --methods "$METHODS" \
   --datasets "$DATASETS" \
-  --max-samples "$MAX_SAMPLES"
+  --max-samples "$MAX_SAMPLES" \
+  --backend "$BACKEND"

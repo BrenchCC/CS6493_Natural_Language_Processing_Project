@@ -49,7 +49,7 @@ def _extract_output_after(text: str, end_idx: int) -> str:
 class ToolIntegratedReasoning(PromptMethod):
     """Prompt the model to interleave reasoning with Python snippets, executing them when needed."""
 
-    EXECUTION_CONDA_ENV = "llm_train"
+    EXECUTION_CONDA_ENV = "cs_hw"
 
     DEFAULT_SYSTEM_PROMPT = (
         "You are a mathematical reasoning assistant that can mix natural-language reasoning with Python snippets. "
@@ -72,6 +72,20 @@ Please solve the problem step by step. Use Python code blocks only when useful, 
     @property
     def name(self) -> str:
         return "tir"
+
+    def __init__(self, config: Dict[str, Any] = None):
+        """
+        Initialize the TIR prompt method.
+
+        Args:
+            config: Method-level configuration dictionary.
+        """
+        super().__init__(config)
+        self.execution_conda_env = str(
+            self.config.get("execution_conda_env")
+            or os.environ.get("TIR_EXECUTION_CONDA_ENV")
+            or self.EXECUTION_CONDA_ENV
+        )
 
     @property
     def run_mode(self) -> str:
@@ -98,12 +112,12 @@ Please solve the problem step by step. Use Python code blocks only when useful, 
         """Build the interpreter command for the configured conda environment."""
         conda_exe = os.environ.get("CONDA_EXE") or shutil.which("conda") or "conda"
         conda_root = os.path.dirname(os.path.dirname(conda_exe)) if os.path.isabs(conda_exe) else ""
-        env_python = os.path.join(conda_root, "envs", self.EXECUTION_CONDA_ENV, "bin", "python") if conda_root else ""
+        env_python = os.path.join(conda_root, "envs", self.execution_conda_env, "bin", "python") if conda_root else ""
 
         if env_python and os.path.exists(env_python):
             return [env_python, "-c", wrapped], "conda_env_python", env_python
 
-        return ["conda", "run", "-n", self.EXECUTION_CONDA_ENV, "python", "-c", wrapped], "conda_run", self.EXECUTION_CONDA_ENV
+        return ["conda", "run", "-n", self.execution_conda_env, "python", "-c", wrapped], "conda_run", self.execution_conda_env
 
     def _execute_python(self, code: str, timeout_seconds: int) -> Dict[str, Any]:
         """Execute one python block (isolated subprocess) and return a structured record."""
@@ -151,7 +165,7 @@ Please solve the problem step by step. Use Python code blocks only when useful, 
                 "returncode": returncode,
                 "ok": ok,
                 "executor": executor,
-                "executor_env": self.EXECUTION_CONDA_ENV,
+                "executor_env": self.execution_conda_env,
                 "executor_target": executor_target,
                 "command": command_display,
                 "output": output_text,
@@ -168,7 +182,7 @@ Please solve the problem step by step. Use Python code blocks only when useful, 
                 "ok": False,
                 "timeout": True,
                 "executor": "conda_env_python",
-                "executor_env": self.EXECUTION_CONDA_ENV,
+                "executor_env": self.execution_conda_env,
                 "command": ["<conda_env_python>", "-c", "<wrapped_python>"],
                 "output": f"Timeout after {timeout_seconds}s",
             }
@@ -181,9 +195,9 @@ Please solve the problem step by step. Use Python code blocks only when useful, 
                 "returncode": None,
                 "ok": False,
                 "executor": "conda",
-                "executor_env": self.EXECUTION_CONDA_ENV,
-                "command": ["conda", "run", "-n", self.EXECUTION_CONDA_ENV, "python", "-c", "<wrapped_python>"],
-                "output": f"Failed to launch conda environment `{self.EXECUTION_CONDA_ENV}`: {exc}",
+                "executor_env": self.execution_conda_env,
+                "command": ["conda", "run", "-n", self.execution_conda_env, "python", "-c", "<wrapped_python>"],
+                "output": f"Failed to launch conda environment `{self.execution_conda_env}`: {exc}",
             }
 
     def run(self, engine: Any, sample: Dict[str, Any], **kwargs: Any) -> Dict[str, Any]:
@@ -291,7 +305,7 @@ Please solve the problem step by step. Use Python code blocks only when useful, 
                 "max_tool_rounds": max_tool_rounds,
                 "python_timeout": timeout_seconds,
                 "python_executor": "conda_env_python",
-                "python_executor_env": self.EXECUTION_CONDA_ENV,
+                "python_executor_env": self.execution_conda_env,
                 "executed_blocks": executed_blocks,
             },
         }

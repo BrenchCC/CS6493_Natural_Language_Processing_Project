@@ -73,6 +73,7 @@ class LLM_Client:
         reasoning_option: Any = False,
         temperature: Optional[float] = None,
         top_p: Optional[float] = None,
+        max_tokens: Optional[int] = None,
         extra_body: Optional[Dict[str, Any]] = None,
         timeout: Optional[int] = None,
         messages: Optional[List[Dict[str, Any]]] = None,
@@ -130,6 +131,8 @@ class LLM_Client:
             create_kwargs["temperature"] = float(temperature)
         if top_p is not None:
             create_kwargs["top_p"] = float(top_p)
+        if max_tokens is not None:
+            create_kwargs["max_tokens"] = int(max_tokens)
         if resolved_extra_body is not None:
             create_kwargs["extra_body"] = resolved_extra_body
 
@@ -155,6 +158,8 @@ class LLM_Client:
                         response_kwargs["temperature"] = float(temperature)
                     if top_p is not None:
                         response_kwargs["top_p"] = float(top_p)
+                    if max_tokens is not None:
+                        response_kwargs["max_output_tokens"] = int(max_tokens)
                     if extra_passthrough:
                         response_kwargs["extra_body"] = extra_passthrough
 

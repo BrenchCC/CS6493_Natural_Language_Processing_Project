@@ -17,6 +17,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--methods", default = "", help = "Comma-separated methods override.")
     parser.add_argument("--datasets", default = "", help = "Comma-separated datasets override.")
     parser.add_argument("--max-samples", type = int, default = 0, help = "Optional max samples override.")
+    parser.add_argument("--backend", default = "", choices = ["", "api", "vllm"], help = "Inference backend override.")
     return parser.parse_args()
 
 
@@ -38,6 +39,7 @@ def main() -> None:
                 method_name = method_name,
                 max_samples = max_samples,
                 dataset_filter = dataset_names,
+                backend = args.backend or None,
             )
 
 
