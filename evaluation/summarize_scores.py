@@ -26,6 +26,8 @@ SUMMARY_FIELDS = [
     "accuracy",
     "avg_response_length_tokens",
     "avg_response_length_chars",
+    "avg_total_response_length_tokens",
+    "avg_total_response_length_chars",
     "avg_score_i",
     "joint_score",
     "mean_sample_score",
@@ -54,6 +56,8 @@ def summarize_records(records: List[Dict[str, Any]]) -> Dict[str, Any]:
             "accuracy": 0.0,
             "avg_response_length_tokens": 0.0,
             "avg_response_length_chars": 0.0,
+            "avg_total_response_length_tokens": 0.0,
+            "avg_total_response_length_chars": 0.0,
             "avg_score_i": 0.0,
             "joint_score": 0.0,
             "mean_sample_score": 0.0,
@@ -90,6 +94,14 @@ def summarize_records(records: List[Dict[str, Any]]) -> Dict[str, Any]:
         "accuracy": mean(float(record.get("accuracy", 0)) for record in records),
         "avg_response_length_tokens": mean(float(record.get("response_length_tokens", 0)) for record in records),
         "avg_response_length_chars": mean(float(record.get("response_length_chars", 0)) for record in records),
+        "avg_total_response_length_tokens": mean(
+            float(record.get("total_response_length_tokens", record.get("response_length_tokens", 0)))
+            for record in records
+        ),
+        "avg_total_response_length_chars": mean(
+            float(record.get("total_response_length_chars", record.get("response_length_chars", 0)))
+            for record in records
+        ),
         "avg_score_i": mean_sample_score,
         "joint_score": mean_sample_score,
         "mean_sample_score": mean_sample_score,
@@ -133,6 +145,14 @@ def summarize_all(config_path: str) -> Dict[str, str]:
             "accuracy": [float(record.get("accuracy", 0.0)) for record in records],
             "response_length_tokens": [float(record.get("response_length_tokens", 0.0)) for record in records],
             "response_length_chars": [float(record.get("response_length_chars", 0.0)) for record in records],
+            "total_response_length_tokens": [
+                float(record.get("total_response_length_tokens", record.get("response_length_tokens", 0.0)))
+                for record in records
+            ],
+            "total_response_length_chars": [
+                float(record.get("total_response_length_chars", record.get("response_length_chars", 0.0)))
+                for record in records
+            ],
             "score_i": [float(record.get("score_i", 0.0)) for record in records],
         }
         correct_records = [record for record in records if float(record.get("accuracy", 0.0)) == 1.0]

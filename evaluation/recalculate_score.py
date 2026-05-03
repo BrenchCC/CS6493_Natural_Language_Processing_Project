@@ -14,6 +14,7 @@ from typing import List
 
 from evaluation.io_utils import read_jsonl
 from evaluation.io_utils import write_jsonl
+from evaluation.evaluate_runs import build_total_output
 from evaluation.metrics import collect_metrics
 from evaluation.scoring import compute_score
 from evaluation.summarize_scores import summarize_all
@@ -45,6 +46,7 @@ def _recalculate_record(record: Dict[str, Any], scoring_config: Dict[str, Any] |
     """Recompute metrics and score fields for one evaluated record."""
     dataset_name = str(record.get("dataset_name", record.get("dataset", "math500")))
     raw_output = str(record.get("final_response") or record.get("raw_response") or "")
+    total_output = build_total_output(record, raw_output = raw_output)
     ground_truth = record.get("gold_answer", "")
 
     metrics = collect_metrics(
@@ -52,6 +54,7 @@ def _recalculate_record(record: Dict[str, Any], scoring_config: Dict[str, Any] |
         ground_truth = ground_truth,
         dataset_name = dataset_name,
         reflection_patterns = (scoring_config or {}).get("reflection_patterns"),
+        total_output = total_output,
     )
     score_data = compute_score(metrics = metrics, scoring_config = scoring_config)
 
@@ -82,6 +85,8 @@ def recalculate_file(
                 "accuracy": updated.get("accuracy", 0),
                 # response_length_tokens: 回复长度（token 数），用于长度惩罚项。
                 "response_length_tokens": updated.get("response_length_tokens", 0),
+                # total_response_length_tokens: Full multi-pass or multi-sample generated length for length penalty.
+                "total_response_length_tokens": updated.get("total_response_length_tokens", 0),
                 # reflection_count: 反思/复查类语句次数，用于 reflection 惩罚项。
                 "reflection_count": updated.get("reflection_count", 0),
                 # answer_count: 明显答案信号出现次数，用于 answer 惩罚项。

@@ -68,8 +68,12 @@ def _require_metric(metrics: Dict[str, Any], field_name: str) -> float:
 
 
 def _resolve_response_length(metrics: Dict[str, Any]) -> float:
+    if "total_response_length_tokens" in metrics:
+        return float(metrics["total_response_length_tokens"])
     if "response_length_tokens" in metrics:
         return float(metrics["response_length_tokens"])
+    if "total_response_length_chars" in metrics:
+        return float(metrics["total_response_length_chars"])
     if "response_length_chars" in metrics:
         return float(metrics["response_length_chars"])
     raise ValueError("Missing required metric field: response_length")

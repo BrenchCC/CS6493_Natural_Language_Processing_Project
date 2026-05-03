@@ -27,8 +27,10 @@
 | 字段 | 类型 | 说明 |
 |---|---|---|
 | `accuracy` / `is_correct` | int | 是否答对，取值为 0 或 1 |
-| `response_length_tokens` | int | 近似 token 长度；当前实现用空格切分估计 |
-| `response_length_chars` | int | 字符长度，若缺失 token 长度则作为回退 |
+| `response_length_tokens` | int | 最终回答的近似 token 长度；当前实现用空格切分估计 |
+| `response_length_chars` | int | 最终回答字符长度 |
+| `total_response_length_tokens` | int | 全流程生成文本的近似 token 长度；多轮/多采样方法会合并中间输出 |
+| `total_response_length_chars` | int | 全流程生成文本字符长度 |
 | `answer_count` | int | 全文命中的答案信号总次数 |
 | `reflection_count` | int | 反思词命中次数 |
 | `tail_ratio` | float | 从第一个答案信号开始的尾部字符占比 |
@@ -38,6 +40,14 @@
 - `first_answer_token_idx` 名称里虽然有 `token`，实际记录的是**字符位置**。
 - `tail_ratio` 按字符比例计算，而不是 tokenizer 级 token 比例。
 - `answer_count` 是对全文答案信号模式直接计数，不会显式排除最后一次答案。
+- `accuracy`、`answer_count`、`reflection_count`、`tail_ratio` 仍基于最终回答文本计算。
+- `length_factor` 优先使用 `total_response_length_tokens`；如果该字段缺失，才回退到 `response_length_tokens` / 字符长度。
+- 对多轮方法，`total_response_length_*` 的语义如下：
+  - `self_refine`：`solve + critique + refine`
+  - `plan_solve`：`plan + solve`
+  - `self_ask`：`ask + answer`
+  - `self_consistency`：所有 sampled responses
+  - `tir`：完整 tool transcript
 
 ---
 
@@ -83,6 +93,7 @@ length_factor = exp(-max(0, response_length - length_ref) / tau_length)
 
 含义：
 
+- 当前 `response_length` 优先指 `total_response_length_tokens`
 - 不超过 `length_ref` 不扣分
 - 超过参考长度后指数衰减
 - 只惩罚过长，不惩罚过短
@@ -195,6 +206,8 @@ joint_score = mean_sample_score
 - `accuracy`
 - `response_length_tokens`
 - `response_length_chars`
+- `total_response_length_tokens`
+- `total_response_length_chars`
 - `reflection_count`
 - `answer_count`
 - `first_answer_token_idx`
@@ -214,6 +227,8 @@ joint_score = mean_sample_score
 - `accuracy`
 - `avg_response_length_tokens`
 - `avg_response_length_chars`
+- `avg_total_response_length_tokens`
+- `avg_total_response_length_chars`
 - `avg_score_i`
 - `joint_score`
 - `mean_sample_score`
@@ -258,7 +273,7 @@ weight_answer + weight_length + weight_reflection == 1.0
 
 ### 7.2 缺失字段处理
 
-如果 `response_length_tokens` 与 `response_length_chars` 都缺失，会抛出：
+如果 `total_response_length_tokens`、`response_length_tokens`、`total_response_length_chars` 与 `response_length_chars` 都缺失，会抛出：
 
 ```python
 ValueError("Missing required metric field: response_length")

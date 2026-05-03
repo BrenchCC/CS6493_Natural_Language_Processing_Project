@@ -17,10 +17,40 @@ from infer_exp.config_utils import load_experiment_config
 from tqdm import tqdm
 
 
+def build_total_output(record: Dict[str, Any], raw_output: str) -> str:
+    """
+    Build the full generated-output text for cost-sensitive length metrics.
+
+    Args:
+        record: Raw or evaluated experiment record.
+        raw_output: Final response text used for answer extraction.
+    """
+    intermediate_outputs = record.get("intermediate_outputs")
+    if not isinstance(intermediate_outputs, list) or not intermediate_outputs:
+        return raw_output
+
+    method_name = str(record.get("method_name", ""))
+    if method_name == "tir":
+        return raw_output
+
+    parts: List[str] = []
+    for item in intermediate_outputs:
+        if not isinstance(item, dict):
+            continue
+        for field_name in ("response", "raw_response"):
+            text = item.get(field_name)
+            if isinstance(text, str) and text.strip():
+                parts.append(text)
+                break
+
+    return "\n".join(parts).strip() or raw_output
+
+
 def evaluate_record(record: Dict[str, Any], scoring_config: Dict[str, Any] | None = None) -> Dict[str, Any]:
     """Evaluate one raw record and append metric fields."""
     dataset_name = str(record.get("dataset_name", record.get("dataset", "math500")))
     raw_output = str(record.get("final_response") or record.get("raw_response") or "")
+    total_output = build_total_output(record, raw_output = raw_output)
     ground_truth = record.get("gold_answer", "")
 
     metrics = collect_metrics(
@@ -28,6 +58,7 @@ def evaluate_record(record: Dict[str, Any], scoring_config: Dict[str, Any] | Non
         ground_truth = ground_truth,
         dataset_name = dataset_name,
         reflection_patterns = (scoring_config or {}).get("reflection_patterns"),
+        total_output = total_output,
     )
     score_data = compute_score(metrics = metrics, scoring_config = scoring_config)
 

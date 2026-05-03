@@ -104,6 +104,17 @@ def test_short_response_not_penalized() -> None:
     assert score_data["length_factor"] == 1.0
 
 
+def test_total_response_length_preferred_for_penalty() -> None:
+    """Ensure total multi-pass length is used when available."""
+    metrics = _base_metrics()
+    metrics["response_length_tokens"] = 100
+    metrics["total_response_length_tokens"] = 2048
+
+    score_data = compute_score(metrics = metrics)
+
+    assert score_data["length_factor"] < 1.0
+
+
 def test_low_reflection_not_penalized() -> None:
     """Ensure reflection penalty is one-sided."""
     metrics = _base_metrics()

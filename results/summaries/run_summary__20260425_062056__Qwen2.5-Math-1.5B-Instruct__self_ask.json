@@ -20,6 +20,8 @@
       "accuracy": 0.4,
       "avg_response_length_tokens": 204.74,
       "avg_response_length_chars": 1099.72,
+      "avg_total_response_length_tokens": 316.68,
+      "avg_total_response_length_chars": 1721.28,
       "avg_score_i": 0.2934172457171508,
       "joint_score": 0.2934172457171508,
       "mean_sample_score": 0.2934172457171508,
@@ -32,7 +34,7 @@
       "mean_count_factor_on_correct": 0.4510703170989845,
       "mean_tail_factor_on_correct": 1.0,
       "raw_file": "/mnt/bn/brench-hl-volume-v1/self-project/CS6493_Natural_Language_Processing_Project/results/raw/Qwen2.5-Math-1.5B-Instruct__math500__self_ask__20260425_062056.jsonl",
-      "evaluated_file": "/mnt/bn/brench-hl-volume-v1/self-project/CS6493_Natural_Language_Processing_Project/results/evaluated/Qwen2.5-Math-1.5B-Instruct__math500__self_ask__20260425_062056.jsonl"
+      "evaluated_file": "/Users/brench/brench_project_collections/School_Project/CS6493_Natural_Language_Processing_Project/results/evaluated/Qwen2.5-Math-1.5B-Instruct__math500__self_ask__20260425_062056.jsonl"
     },
     {
       "run_id": "20260425_062056",
@@ -44,6 +46,8 @@
       "accuracy": 0.46,
       "avg_response_length_tokens": 169.12,
       "avg_response_length_chars": 846.82,
+      "avg_total_response_length_tokens": 236.02,
+      "avg_total_response_length_chars": 1184.44,
       "avg_score_i": 0.34405676546067504,
       "joint_score": 0.34405676546067504,
       "mean_sample_score": 0.34405676546067504,
@@ -56,7 +60,7 @@
       "mean_count_factor_on_correct": 0.3953629437292057,
       "mean_tail_factor_on_correct": 1.0,
       "raw_file": "/mnt/bn/brench-hl-volume-v1/self-project/CS6493_Natural_Language_Processing_Project/results/raw/Qwen2.5-Math-1.5B-Instruct__gsm8k__self_ask__20260425_062056.jsonl",
-      "evaluated_file": "/mnt/bn/brench-hl-volume-v1/self-project/CS6493_Natural_Language_Processing_Project/results/evaluated/Qwen2.5-Math-1.5B-Instruct__gsm8k__self_ask__20260425_062056.jsonl"
+      "evaluated_file": "/Users/brench/brench_project_collections/School_Project/CS6493_Natural_Language_Processing_Project/results/evaluated/Qwen2.5-Math-1.5B-Instruct__gsm8k__self_ask__20260425_062056.jsonl"
     },
     {
       "run_id": "20260425_062056",
@@ -68,6 +72,8 @@
       "accuracy": 0.03333333333333333,
       "avg_response_length_tokens": 656.2,
       "avg_response_length_chars": 3480.4666666666667,
+      "avg_total_response_length_tokens": 816.8333333333334,
+      "avg_total_response_length_chars": 4381.9,
       "avg_score_i": 0.022344001534521308,
       "joint_score": 0.022344001534521308,
       "mean_sample_score": 0.022344001534521308,
@@ -80,7 +86,7 @@
       "mean_count_factor_on_correct": 0.36787944117144233,
       "mean_tail_factor_on_correct": 1.0,
       "raw_file": "/mnt/bn/brench-hl-volume-v1/self-project/CS6493_Natural_Language_Processing_Project/results/raw/Qwen2.5-Math-1.5B-Instruct__aime2024__self_ask__20260425_062056.jsonl",
-      "evaluated_file": "/mnt/bn/brench-hl-volume-v1/self-project/CS6493_Natural_Language_Processing_Project/results/evaluated/Qwen2.5-Math-1.5B-Instruct__aime2024__self_ask__20260425_062056.jsonl"
+      "evaluated_file": "/Users/brench/brench_project_collections/School_Project/CS6493_Natural_Language_Processing_Project/results/evaluated/Qwen2.5-Math-1.5B-Instruct__aime2024__self_ask__20260425_062056.jsonl"
     }
   ],
   "overall": {
@@ -93,6 +99,8 @@
     "accuracy": 0.3384615384615385,
     "avg_response_length_tokens": 295.2230769230769,
     "avg_response_length_chars": 1551.8538461538462,
+    "avg_total_response_length_tokens": 401.0769230769231,
+    "avg_total_response_length_chars": 2128.7923076923075,
     "avg_score_i": 0.2503386200378995,
     "joint_score": 0.2503386200378995,
     "mean_sample_score": 0.2503386200378995,
@@ -104,15 +112,15 @@
     "mean_reflection_factor_on_correct": 0.9195542874733099,
     "mean_count_factor_on_correct": 0.4200598520209742,
     "mean_tail_factor_on_correct": 1.0,
-    "aggregate_scores_path": "/mnt/bn/brench-hl-volume-v1/self-project/CS6493_Natural_Language_Processing_Project/results/summaries/aggregate_scores.csv",
-    "single_metric_stats_path": "/mnt/bn/brench-hl-volume-v1/self-project/CS6493_Natural_Language_Processing_Project/results/summaries/single_metric_stats.csv"
+    "aggregate_scores_path": "/Users/brench/brench_project_collections/School_Project/CS6493_Natural_Language_Processing_Project/results/summaries/aggregate_scores.csv",
+    "single_metric_stats_path": "/Users/brench/brench_project_collections/School_Project/CS6493_Natural_Language_Processing_Project/results/summaries/single_metric_stats.csv"
   },
   "artifacts": {
-    "raw_dir": "/mnt/bn/brench-hl-volume-v1/self-project/CS6493_Natural_Language_Processing_Project/results/raw",
-    "evaluated_dir": "/mnt/bn/brench-hl-volume-v1/self-project/CS6493_Natural_Language_Processing_Project/results/evaluated",
-    "summary_dir": "/mnt/bn/brench-hl-volume-v1/self-project/CS6493_Natural_Language_Processing_Project/results/summaries",
-    "log_dir": "/mnt/bn/brench-hl-volume-v1/self-project/CS6493_Natural_Language_Processing_Project/results/logs",
-    "aggregate_scores": "/mnt/bn/brench-hl-volume-v1/self-project/CS6493_Natural_Language_Processing_Project/results/summaries/aggregate_scores.csv",
-    "single_metric_stats": "/mnt/bn/brench-hl-volume-v1/self-project/CS6493_Natural_Language_Processing_Project/results/summaries/single_metric_stats.csv"
+    "raw_dir": "/Users/brench/brench_project_collections/School_Project/CS6493_Natural_Language_Processing_Project/results/raw",
+    "evaluated_dir": "/Users/brench/brench_project_collections/School_Project/CS6493_Natural_Language_Processing_Project/results/evaluated",
+    "summary_dir": "/Users/brench/brench_project_collections/School_Project/CS6493_Natural_Language_Processing_Project/results/summaries",
+    "log_dir": "/Users/brench/brench_project_collections/School_Project/CS6493_Natural_Language_Processing_Project/results/logs",
+    "aggregate_scores": "/Users/brench/brench_project_collections/School_Project/CS6493_Natural_Language_Processing_Project/results/summaries/aggregate_scores.csv",
+    "single_metric_stats": "/Users/brench/brench_project_collections/School_Project/CS6493_Natural_Language_Processing_Project/results/summaries/single_metric_stats.csv"
   }
 }

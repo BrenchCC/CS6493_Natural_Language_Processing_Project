@@ -117,9 +117,11 @@ def collect_metrics(
     ground_truth: Any,
     dataset_name: str = "math500",
     reflection_patterns: list[str] | None = None,
+    total_output: str | None = None,
 ) -> Dict[str, Any]:
     """Collect core evaluation metrics for one response."""
     output_text = raw_output or ""
+    total_output_text = output_text if total_output is None else (total_output or "")
     final_answer = extract_final_answer(output_text, dataset_name = dataset_name)
     normalized_ground_truth = normalize_ground_truth(ground_truth, dataset_name = dataset_name)
     answer_count, first_answer_token_idx = detect_answer_signals(output_text)
@@ -127,6 +129,8 @@ def collect_metrics(
     accuracy = 1 if math_equal(final_answer, normalized_ground_truth) else 0
     response_length_chars = len(output_text)
     response_length_tokens = _estimate_token_count(output_text)
+    total_response_length_chars = len(total_output_text)
+    total_response_length_tokens = _estimate_token_count(total_output_text)
     tail_ratio = _tail_ratio(output_text, first_answer_token_idx)
 
     return {
@@ -135,6 +139,8 @@ def collect_metrics(
         "accuracy": accuracy,
         "response_length_tokens": response_length_tokens,
         "response_length_chars": response_length_chars,
+        "total_response_length_tokens": total_response_length_tokens,
+        "total_response_length_chars": total_response_length_chars,
         "reflection_count": reflection_count,
         "answer_count": answer_count,
         "first_answer_token_idx": first_answer_token_idx,

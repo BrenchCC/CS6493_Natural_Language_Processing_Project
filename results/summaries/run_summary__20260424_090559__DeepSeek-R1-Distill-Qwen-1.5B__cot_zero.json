@@ -20,6 +20,8 @@
       "accuracy": 0.9,
       "avg_response_length_tokens": 2080.0,
       "avg_response_length_chars": 10609.22,
+      "avg_total_response_length_tokens": 2080.0,
+      "avg_total_response_length_chars": 10609.22,
       "avg_score_i": 0.04969140464320909,
       "joint_score": 0.04969140464320909,
       "mean_sample_score": 0.04969140464320909,
@@ -32,7 +34,7 @@
       "mean_count_factor_on_correct": 0.13647968051489662,
       "mean_tail_factor_on_correct": 0.5301283672871113,
       "raw_file": "/mnt/bn/brench-hl-volume-v1/self-project/CS6493_Natural_Language_Processing_Project/results/raw/DeepSeek-R1-Distill-Qwen-1.5B__math500__cot_zero__20260424_090559.jsonl",
-      "evaluated_file": "/mnt/bn/brench-hl-volume-v1/self-project/CS6493_Natural_Language_Processing_Project/results/evaluated/DeepSeek-R1-Distill-Qwen-1.5B__math500__cot_zero__20260424_090559.jsonl"
+      "evaluated_file": "/Users/brench/brench_project_collections/School_Project/CS6493_Natural_Language_Processing_Project/results/evaluated/DeepSeek-R1-Distill-Qwen-1.5B__math500__cot_zero__20260424_090559.jsonl"
     },
     {
       "run_id": "20260424_090559",
@@ -44,6 +46,8 @@
       "accuracy": 0.9,
       "avg_response_length_tokens": 698.4,
       "avg_response_length_chars": 3531.3,
+      "avg_total_response_length_tokens": 698.4,
+      "avg_total_response_length_chars": 3531.3,
       "avg_score_i": 0.25043375563405246,
       "joint_score": 0.25043375563405246,
       "mean_sample_score": 0.25043375563405246,
@@ -56,7 +60,7 @@
       "mean_count_factor_on_correct": 0.47072774290848346,
       "mean_tail_factor_on_correct": 0.7615995285427034,
       "raw_file": "/mnt/bn/brench-hl-volume-v1/self-project/CS6493_Natural_Language_Processing_Project/results/raw/DeepSeek-R1-Distill-Qwen-1.5B__gsm8k__cot_zero__20260424_090559.jsonl",
-      "evaluated_file": "/mnt/bn/brench-hl-volume-v1/self-project/CS6493_Natural_Language_Processing_Project/results/evaluated/DeepSeek-R1-Distill-Qwen-1.5B__gsm8k__cot_zero__20260424_090559.jsonl"
+      "evaluated_file": "/Users/brench/brench_project_collections/School_Project/CS6493_Natural_Language_Processing_Project/results/evaluated/DeepSeek-R1-Distill-Qwen-1.5B__gsm8k__cot_zero__20260424_090559.jsonl"
     },
     {
       "run_id": "20260424_090559",
@@ -68,6 +72,8 @@
       "accuracy": 0.4,
       "avg_response_length_tokens": 8495.8,
       "avg_response_length_chars": 41051.8,
+      "avg_total_response_length_tokens": 8495.8,
+      "avg_total_response_length_chars": 41051.8,
       "avg_score_i": 2.003692267644259e-05,
       "joint_score": 2.003692267644259e-05,
       "mean_sample_score": 2.003692267644259e-05,
@@ -80,7 +86,7 @@
       "mean_count_factor_on_correct": 0.04285588296841518,
       "mean_tail_factor_on_correct": 0.6904742413145843,
       "raw_file": "/mnt/bn/brench-hl-volume-v1/self-project/CS6493_Natural_Language_Processing_Project/results/raw/DeepSeek-R1-Distill-Qwen-1.5B__aime2024__cot_zero__20260424_090559.jsonl",
-      "evaluated_file": "/mnt/bn/brench-hl-volume-v1/self-project/CS6493_Natural_Language_Processing_Project/results/evaluated/DeepSeek-R1-Distill-Qwen-1.5B__aime2024__cot_zero__20260424_090559.jsonl"
+      "evaluated_file": "/Users/brench/brench_project_collections/School_Project/CS6493_Natural_Language_Processing_Project/results/evaluated/DeepSeek-R1-Distill-Qwen-1.5B__aime2024__cot_zero__20260424_090559.jsonl"
     }
   ],
   "overall": {
@@ -93,6 +99,8 @@
     "accuracy": 0.7846153846153846,
     "avg_response_length_tokens": 3029.1846153846154,
     "avg_response_length_chars": 14912.153846153846,
+    "avg_total_response_length_tokens": 3029.1846153846154,
+    "avg_total_response_length_chars": 14912.153846153846,
     "avg_score_i": 0.11543737785802594,
     "joint_score": 0.11543737785802594,
     "mean_sample_score": 0.11543737785802594,
@@ -104,15 +112,15 @@
     "mean_reflection_factor_on_correct": 0.017269868064496943,
     "mean_count_factor_on_correct": 0.2729274965654224,
     "mean_tail_factor_on_correct": 0.6511122177266341,
-    "aggregate_scores_path": "/mnt/bn/brench-hl-volume-v1/self-project/CS6493_Natural_Language_Processing_Project/results/summaries/aggregate_scores.csv",
-    "single_metric_stats_path": "/mnt/bn/brench-hl-volume-v1/self-project/CS6493_Natural_Language_Processing_Project/results/summaries/single_metric_stats.csv"
+    "aggregate_scores_path": "/Users/brench/brench_project_collections/School_Project/CS6493_Natural_Language_Processing_Project/results/summaries/aggregate_scores.csv",
+    "single_metric_stats_path": "/Users/brench/brench_project_collections/School_Project/CS6493_Natural_Language_Processing_Project/results/summaries/single_metric_stats.csv"
   },
   "artifacts": {
-    "raw_dir": "/mnt/bn/brench-hl-volume-v1/self-project/CS6493_Natural_Language_Processing_Project/results/raw",
-    "evaluated_dir": "/mnt/bn/brench-hl-volume-v1/self-project/CS6493_Natural_Language_Processing_Project/results/evaluated",
-    "summary_dir": "/mnt/bn/brench-hl-volume-v1/self-project/CS6493_Natural_Language_Processing_Project/results/summaries",
-    "log_dir": "/mnt/bn/brench-hl-volume-v1/self-project/CS6493_Natural_Language_Processing_Project/results/logs",
-    "aggregate_scores": "/mnt/bn/brench-hl-volume-v1/self-project/CS6493_Natural_Language_Processing_Project/results/summaries/aggregate_scores.csv",
-    "single_metric_stats": "/mnt/bn/brench-hl-volume-v1/self-project/CS6493_Natural_Language_Processing_Project/results/summaries/single_metric_stats.csv"
+    "raw_dir": "/Users/brench/brench_project_collections/School_Project/CS6493_Natural_Language_Processing_Project/results/raw",
+    "evaluated_dir": "/Users/brench/brench_project_collections/School_Project/CS6493_Natural_Language_Processing_Project/results/evaluated",
+    "summary_dir": "/Users/brench/brench_project_collections/School_Project/CS6493_Natural_Language_Processing_Project/results/summaries",
+    "log_dir": "/Users/brench/brench_project_collections/School_Project/CS6493_Natural_Language_Processing_Project/results/logs",
+    "aggregate_scores": "/Users/brench/brench_project_collections/School_Project/CS6493_Natural_Language_Processing_Project/results/summaries/aggregate_scores.csv",
+    "single_metric_stats": "/Users/brench/brench_project_collections/School_Project/CS6493_Natural_Language_Processing_Project/results/summaries/single_metric_stats.csv"
   }
 }

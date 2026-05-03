@@ -52,6 +52,8 @@ def test_collect_metrics_fields() -> None:
         "accuracy",
         "response_length_tokens",
         "response_length_chars",
+        "total_response_length_tokens",
+        "total_response_length_chars",
         "reflection_count",
         "answer_count",
         "first_answer_token_idx",
@@ -59,3 +61,18 @@ def test_collect_metrics_fields() -> None:
     ]
     for key in required_keys:
         assert key in metrics
+
+
+def test_collect_metrics_total_length_fields() -> None:
+    """
+    Ensure total response length can include intermediate generations.
+
+    Args:
+        None.
+    """
+    raw = "Final answer is \\boxed{7}."
+    total = "Plan first.\n" + raw
+    metrics = collect_metrics(raw_output = raw, ground_truth = "7", total_output = total)
+
+    assert metrics["total_response_length_tokens"] > metrics["response_length_tokens"]
+    assert metrics["total_response_length_chars"] > metrics["response_length_chars"]
