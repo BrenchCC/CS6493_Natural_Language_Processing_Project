@@ -15,6 +15,96 @@ sys.path.append(os.getcwd())
 logger = logging.getLogger("LLM-Client")
 
 
+def _to_plain_value(value: Any) -> Any:
+    """Convert SDK response objects into JSON-serializable values.
+
+    Args:
+        value: Arbitrary value returned by the API SDK.
+    """
+    if value is None or isinstance(value, (str, int, float, bool)):
+        return value
+    if isinstance(value, list):
+        return [_to_plain_value(item) for item in value]
+    if isinstance(value, tuple):
+        return [_to_plain_value(item) for item in value]
+    if isinstance(value, dict):
+        return {str(key): _to_plain_value(item) for key, item in value.items()}
+    if hasattr(value, "model_dump"):
+        return _to_plain_value(value.model_dump())
+    if hasattr(value, "dict"):
+        return _to_plain_value(value.dict())
+    if hasattr(value, "to_dict"):
+        return _to_plain_value(value.to_dict())
+    if hasattr(value, "__dict__"):
+        return {
+            str(key): _to_plain_value(item)
+            for key, item in vars(value).items()
+            if not str(key).startswith("_")
+        }
+    return str(value)
+
+
+def _find_numeric_value(value: Any, target_keys: set[str]) -> int | float | str:
+    """Find the first numeric value whose key matches any target key.
+
+    Args:
+        value: JSON-like object to search.
+        target_keys: Candidate key names.
+    """
+    if isinstance(value, dict):
+        for key, item in value.items():
+            if str(key) in target_keys and isinstance(item, (int, float)):
+                return item
+        for item in value.values():
+            found = _find_numeric_value(item, target_keys = target_keys)
+            if found != "":
+                return found
+    if isinstance(value, list):
+        for item in value:
+            found = _find_numeric_value(item, target_keys = target_keys)
+            if found != "":
+                return found
+    return ""
+
+
+def _build_usage_metadata(usage: Any) -> Dict[str, Any]:
+    """Build normalized usage metadata from an API usage object.
+
+    Args:
+        usage: Provider usage object or dictionary.
+    """
+    usage_dict = _to_plain_value(usage)
+    if not isinstance(usage_dict, dict):
+        usage_dict = {}
+
+    prompt_tokens = _find_numeric_value(
+        usage_dict,
+        target_keys = {"prompt_tokens", "input_tokens"},
+    )
+    completion_tokens = _find_numeric_value(
+        usage_dict,
+        target_keys = {"completion_tokens", "output_tokens"},
+    )
+    reasoning_tokens = _find_numeric_value(
+        usage_dict,
+        target_keys = {"reasoning_tokens"},
+    )
+    total_tokens = _find_numeric_value(
+        usage_dict,
+        target_keys = {"total_tokens"},
+    )
+    if total_tokens == "" and isinstance(prompt_tokens, (int, float)) and isinstance(completion_tokens, (int, float)):
+        total_tokens = prompt_tokens + completion_tokens
+
+    return {
+        "usage": usage_dict,
+        "prompt_tokens": prompt_tokens,
+        "completion_tokens": completion_tokens,
+        "reasoning_tokens": reasoning_tokens,
+        "total_tokens": total_tokens,
+    }
+
+
 class LLM_Client:
     def __init__(
         self,
@@ -192,16 +282,15 @@ class LLM_Client:
                                 )
 
                     reasoning_content = ""
-                    prompt_tok, completion_tok = "", ""
                     usage = getattr(response, "usage", None)
-                    if usage is not None:
-                        prompt_tok = getattr(usage, "input_tokens", "")
-                        completion_tok = getattr(usage, "output_tokens", "")
+                    usage_metadata = _build_usage_metadata(usage)
+                    prompt_tok = usage_metadata["prompt_tokens"]
+                    completion_tok = usage_metadata["completion_tokens"]
 
                     if not isinstance(result, str):
                         result = "dummy_result"
 
-                    return reasoning_content, result, prompt_tok, completion_tok
+                    return reasoning_content, result, prompt_tok, completion_tok, usage_metadata
                 except Exception as e:
                     logger.error(e)
                     fallback_kwargs = dict(create_kwargs)
@@ -236,15 +325,15 @@ class LLM_Client:
                 result = completion.choices[0].message.content
 
             try:
-                reasoning_content = completion.choices[0].message.reasoning_content
-                prompt_tok = completion.usage.prompt_tokens
-                completion_tok = completion.usage.completion_tokens
-                # logger.info(f"reasoning_content: {reasoning_content}")
+                message = completion.choices[0].message
+                reasoning_content = getattr(message, "reasoning_content", "") or ""
             except Exception as e:
                 logger.error(f"Error extracting reasoning_content: {e}")
                 reasoning_content = ""
-                prompt_tok, completion_tok = "", ""
-                logger.info(f"Prompt Tokens: {prompt_tok}, Completion Tokens: {completion_tok}")
+
+            usage_metadata = _build_usage_metadata(getattr(completion, "usage", None))
+            prompt_tok = usage_metadata["prompt_tokens"]
+            completion_tok = usage_metadata["completion_tokens"]
 
             if not stream:
                 # logger.info(f"result: {result}")
@@ -255,11 +344,12 @@ class LLM_Client:
                 result = "dummy_result"
                 reasoning_content = ""
                 prompt_tok, completion_tok = "", ""
+                usage_metadata = _build_usage_metadata(None)
 
-            return reasoning_content, result, prompt_tok, completion_tok
+            return reasoning_content, result, prompt_tok, completion_tok, usage_metadata
         except Exception as e:
             logger.error(e)
-            return None, "dummy_result", "", ""
+            return None, "dummy_result", "", "", _build_usage_metadata(None)
 
 if __name__ == "__main__":
     from dotenv import load_dotenv
@@ -277,7 +367,7 @@ if __name__ == "__main__":
         base_url = os.environ.get("WORKER_BASE_URL"),
         default_model = os.environ.get("WORKER_MODEL_NAME"),
     )
-    reasoning_content, result, prompt_tok, completion_tok = client.chat(
+    reasoning_content, result, prompt_tok, completion_tok, usage_metadata = client.chat(
         input_query = "你好",
         end_point = os.environ.get("WORKER_MODEL_NAME"),
         reasoning_option = False,
@@ -292,7 +382,7 @@ if __name__ == "__main__":
         base_url = os.environ.get("WORKER_BASE_URL"),
         default_model = os.environ.get("WORKER_MODEL_NAME"),
     )
-    reasoning_content, result, prompt_tok, completion_tok = client.chat(
+    reasoning_content, result, prompt_tok, completion_tok, usage_metadata = client.chat(
         input_query = "你好",
         end_point = os.environ.get("WORKER_MODEL_NAME"),
         reasoning_option = False,   

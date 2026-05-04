@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-CONFIG_PATH="${1:-configs/yaml/api_qwen_math.yaml}"
+CONFIG_PATH="${1:-configs/yaml/api_qwen_math_reasoning_usage.yaml}"
 MAX_SAMPLES="${2:-50}"
 DATASETS="${3:-}"
-METHODS="${4:-tir,plan_solve,self_ask}"
+METHODS="${4:-plan_solve,tir}"
 
 if [[ ! -f ".env" ]]; then
   echo "Missing .env. Please run this script from the project root." >&2

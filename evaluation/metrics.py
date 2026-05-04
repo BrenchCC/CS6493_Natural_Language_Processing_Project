@@ -97,11 +97,14 @@ def normalize_ground_truth(ground_truth: Any, dataset_name: str = "math500") -> 
 
 
 def _estimate_token_count(text: str) -> int:
-    """Estimate token count with a whitespace fallback."""
+    """Estimate token count with character and word heuristics."""
     stripped = (text or "").strip()
     if not stripped:
         return 0
-    return len(stripped.split())
+
+    char_based_tokens = len(stripped) / 4.0
+    word_based_tokens = len(stripped.split()) / 0.75
+    return max(1, math.ceil(max(char_based_tokens, word_based_tokens)))
 
 
 def _tail_ratio(text: str, first_signal_idx: int) -> float:

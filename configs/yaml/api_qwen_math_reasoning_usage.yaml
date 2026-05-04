@@ -1,0 +1,56 @@
+run:
+  backend: api
+  output_dir: results/raw_reasoning_usage
+  evaluated_dir: results/evaluated_reasoning_usage
+  summary_dir: results/summaries_reasoning_usage
+  log_dir: results/logs_reasoning_usage
+  num_workers: 2
+  eval_num_workers: 8
+  micro_batch_size: 1
+
+api:
+  mode: ark
+  api_key_env: LLM_API_KEY
+  base_url_env: LLM_API_BASE_URL
+  model_env: LLM_MODEL
+  identifier_env: LLM_IDENTIFIER
+  timeout: 300
+  print_stream: false
+  max_workers: 8
+  rpm: 30000
+  tpm: 5000000
+  window_s: 60.0
+
+models:
+  aliases:
+    Qwen/Qwen2.5-Math-1.5B-Instruct: Qwen/Qwen2.5-Math-1.5B-Instruct
+  settings:
+    Qwen/Qwen2.5-Math-1.5B-Instruct:
+      reasoning_mode: api_ark
+      enable_thinking:
+      cannot_disable_thinking: false
+      disable_sampling: false
+
+datasets:
+  - name: math500
+    sample_path: data/processed/math500_sample.jsonl
+    max_samples: 50
+  - name: gsm8k
+    sample_path: data/processed/gsm8k_sample.jsonl
+    max_samples: 50
+  - name: aime2024
+    sample_path: data/processed/aime2024_sample.jsonl
+    max_samples: 30
+
+method_configs:
+  plan_solve:
+    temperature: 0.0
+    top_p: 1.0
+    max_tokens: 16384
+    max_plan_steps: 5
+  tir:
+    temperature: 0.0
+    top_p: 1.0
+    max_tokens: 16384
+    repetition_penalty: 1.2
+    execution_conda_env: cs_hw

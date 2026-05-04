@@ -86,6 +86,54 @@ def _build_engine(config: Dict[str, Any], model_name: str, backend: str | None =
     return _build_vllm_engine(config, model_name)
 
 
+def _numeric_or_zero(value: Any) -> float:
+    """Convert numeric-like values to float, with empty values treated as zero.
+
+    Args:
+        value: Value to normalize.
+    """
+    if isinstance(value, (int, float)):
+        return float(value)
+    if isinstance(value, str) and value.strip():
+        try:
+            return float(value)
+        except ValueError:
+            return 0.0
+    return 0.0
+
+
+def _summarize_api_call_trace(call_trace: List[Dict[str, Any]]) -> Dict[str, Any]:
+    """Summarize per-call API usage metadata for one sample.
+
+    Args:
+        call_trace: Ordered API generation calls made while solving one sample.
+    """
+    prompt_tokens = sum(_numeric_or_zero(call.get("prompt_tokens")) for call in call_trace)
+    completion_tokens = sum(_numeric_or_zero(call.get("completion_tokens")) for call in call_trace)
+    total_tokens = sum(_numeric_or_zero(call.get("total_tokens")) for call in call_trace)
+    reasoning_tokens = sum(_numeric_or_zero(call.get("reasoning_tokens")) for call in call_trace)
+    estimated_reasoning_tokens = sum(
+        _numeric_or_zero(call.get("estimated_reasoning_tokens"))
+        for call in call_trace
+    )
+    reasoning_content_chars = sum(
+        _numeric_or_zero(call.get("reasoning_content_chars"))
+        for call in call_trace
+    )
+    if total_tokens == 0.0 and prompt_tokens + completion_tokens > 0.0:
+        total_tokens = prompt_tokens + completion_tokens
+
+    return {
+        "api_call_count": len(call_trace),
+        "api_prompt_tokens": prompt_tokens,
+        "api_completion_tokens": completion_tokens,
+        "api_total_tokens": total_tokens,
+        "api_reasoning_tokens": reasoning_tokens,
+        "api_estimated_reasoning_tokens": estimated_reasoning_tokens,
+        "api_reasoning_content_chars": reasoning_content_chars,
+    }
+
+
 def _build_raw_record(
     sample: Dict[str, Any],
     run_id: str,
@@ -214,6 +262,9 @@ def _run_sample_inference(
     model_settings: Dict[str, Any],
 ) -> Dict[str, Any]:
     """Run one sample and return its raw record."""
+    if hasattr(engine, "start_call_trace"):
+        engine.start_call_trace()
+
     result = method.run(
         engine,
         sample,
@@ -221,9 +272,16 @@ def _run_sample_inference(
         enable_thinking = model_settings.get("enable_thinking"),
         model_settings = model_settings,
     )
+    call_trace = []
+    if hasattr(engine, "consume_call_trace"):
+        call_trace = engine.consume_call_trace()
+
     result_metadata = dict(result.get("metadata", {}))
     result_metadata["backend"] = backend_name
     result_metadata["engine_metadata"] = engine_metadata
+    if call_trace:
+        result_metadata["api_call_trace"] = call_trace
+        result_metadata["api_usage"] = _summarize_api_call_trace(call_trace = call_trace)
     result["metadata"] = result_metadata
     return _build_raw_record(
         sample = sample,

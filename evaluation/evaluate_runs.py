@@ -46,12 +46,53 @@ def build_total_output(record: Dict[str, Any], raw_output: str) -> str:
     return "\n".join(parts).strip() or raw_output
 
 
+def extract_api_usage_metrics(record: Dict[str, Any]) -> Dict[str, Any]:
+    """Extract saved API usage metadata into top-level numeric metrics.
+
+    Args:
+        record: Raw or evaluated experiment record.
+    """
+    metadata = record.get("metadata", {})
+    if not isinstance(metadata, dict):
+        metadata = {}
+    api_usage = metadata.get("api_usage", {})
+    if not isinstance(api_usage, dict):
+        api_usage = {}
+
+    return {
+        "api_call_count": api_usage.get("api_call_count", 0),
+        "api_prompt_tokens": api_usage.get("api_prompt_tokens", 0.0),
+        "api_completion_tokens": api_usage.get("api_completion_tokens", 0.0),
+        "api_total_tokens": api_usage.get("api_total_tokens", 0.0),
+        "api_reasoning_tokens": api_usage.get("api_reasoning_tokens", 0.0),
+        "api_estimated_reasoning_tokens": api_usage.get("api_estimated_reasoning_tokens", 0.0),
+        "api_reasoning_content_chars": api_usage.get("api_reasoning_content_chars", 0.0),
+    }
+
+
+def apply_api_completion_total(metrics: Dict[str, Any], api_usage_metrics: Dict[str, Any]) -> Dict[str, Any]:
+    """Use provider completion tokens as total generated length when available.
+
+    Args:
+        metrics: Metrics computed from visible response text.
+        api_usage_metrics: Top-level API usage metrics extracted from metadata.
+    """
+    completion_tokens = float(api_usage_metrics.get("api_completion_tokens") or 0.0)
+    if completion_tokens <= 0:
+        return metrics
+
+    updated_metrics = dict(metrics)
+    updated_metrics["total_response_length_tokens"] = completion_tokens
+    return updated_metrics
+
+
 def evaluate_record(record: Dict[str, Any], scoring_config: Dict[str, Any] | None = None) -> Dict[str, Any]:
     """Evaluate one raw record and append metric fields."""
     dataset_name = str(record.get("dataset_name", record.get("dataset", "math500")))
     raw_output = str(record.get("final_response") or record.get("raw_response") or "")
     total_output = build_total_output(record, raw_output = raw_output)
     ground_truth = record.get("gold_answer", "")
+    api_usage_metrics = extract_api_usage_metrics(record = record)
 
     metrics = collect_metrics(
         raw_output = raw_output,
@@ -60,12 +101,14 @@ def evaluate_record(record: Dict[str, Any], scoring_config: Dict[str, Any] | Non
         reflection_patterns = (scoring_config or {}).get("reflection_patterns"),
         total_output = total_output,
     )
+    metrics = apply_api_completion_total(metrics = metrics, api_usage_metrics = api_usage_metrics)
     score_data = compute_score(metrics = metrics, scoring_config = scoring_config)
 
     evaluated = dict(record)
     evaluated["parsed_prediction"] = metrics["final_answer"]
     evaluated.update(metrics)
     evaluated.update(score_data)
+    evaluated.update(api_usage_metrics)
     return evaluated
 
 

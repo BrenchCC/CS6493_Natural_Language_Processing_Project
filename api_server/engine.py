@@ -67,6 +67,28 @@ class APIEngine:
         if not self.endpoint:
             raise RuntimeError(f"Missing active API endpoint in `{self.model_env}`.")
 
+    def start_call_trace(self) -> None:
+        """Start collecting API call metadata for the current thread."""
+        self._thread_local.call_trace = []
+
+    def consume_call_trace(self) -> List[Dict[str, Any]]:
+        """Return and clear collected API call metadata for the current thread."""
+        call_trace = getattr(self._thread_local, "call_trace", [])
+        self._thread_local.call_trace = []
+        return list(call_trace)
+
+    def _append_call_trace(self, call_metadata: Dict[str, Any]) -> None:
+        """Append one API call metadata record when tracing is enabled.
+
+        Args:
+            call_metadata: Non-secret metadata for one API generation call.
+        """
+        call_trace = getattr(self._thread_local, "call_trace", None)
+        if isinstance(call_trace, list):
+            call_metadata = dict(call_metadata)
+            call_metadata["call_index"] = len(call_trace) + 1
+            call_trace.append(call_metadata)
+
     def _get_client(self) -> LLM_Client:
         """Return a per-thread API client for concurrent inference."""
         client = getattr(self._thread_local, "client", None)
@@ -127,7 +149,7 @@ class APIEngine:
         timeout = kwargs.get("timeout")
         reserve_tokens = self._estimate_reserved_tokens(messages = messages, max_tokens = max_tokens)
         self._rate_limiter.acquire(reserve_tokens = reserve_tokens)
-        reasoning_content, result, prompt_tokens, completion_tokens = self._get_client().chat(
+        reasoning_content, result, prompt_tokens, completion_tokens, usage_metadata = self._get_client().chat(
             input_query = "",
             end_point = self.endpoint,
             messages = messages,
@@ -139,4 +161,18 @@ class APIEngine:
             extra_body = extra_body,
             timeout = timeout,
         )
-        return [result if isinstance(result, str) else ""]
+        response_text = result if isinstance(result, str) else ""
+        reasoning_text = reasoning_content if isinstance(reasoning_content, str) else ""
+        call_metadata = {
+            "reasoning_content": reasoning_text,
+            "reasoning_content_chars": len(reasoning_text),
+            "estimated_reasoning_tokens": len(reasoning_text.strip().split()) if reasoning_text.strip() else 0,
+            "prompt_tokens": prompt_tokens,
+            "completion_tokens": completion_tokens,
+            "usage": usage_metadata.get("usage", {}) if isinstance(usage_metadata, dict) else {},
+            "reasoning_tokens": usage_metadata.get("reasoning_tokens", "") if isinstance(usage_metadata, dict) else "",
+            "total_tokens": usage_metadata.get("total_tokens", "") if isinstance(usage_metadata, dict) else "",
+            "response_length_chars": len(response_text),
+        }
+        self._append_call_trace(call_metadata = call_metadata)
+        return [response_text]

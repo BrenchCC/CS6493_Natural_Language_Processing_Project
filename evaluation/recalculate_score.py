@@ -15,6 +15,8 @@ from typing import List
 from evaluation.io_utils import read_jsonl
 from evaluation.io_utils import write_jsonl
 from evaluation.evaluate_runs import build_total_output
+from evaluation.evaluate_runs import extract_api_usage_metrics
+from evaluation.evaluate_runs import apply_api_completion_total
 from evaluation.metrics import collect_metrics
 from evaluation.scoring import compute_score
 from evaluation.summarize_scores import summarize_all
@@ -48,6 +50,7 @@ def _recalculate_record(record: Dict[str, Any], scoring_config: Dict[str, Any] |
     raw_output = str(record.get("final_response") or record.get("raw_response") or "")
     total_output = build_total_output(record, raw_output = raw_output)
     ground_truth = record.get("gold_answer", "")
+    api_usage_metrics = extract_api_usage_metrics(record = record)
 
     metrics = collect_metrics(
         raw_output = raw_output,
@@ -56,12 +59,14 @@ def _recalculate_record(record: Dict[str, Any], scoring_config: Dict[str, Any] |
         reflection_patterns = (scoring_config or {}).get("reflection_patterns"),
         total_output = total_output,
     )
+    metrics = apply_api_completion_total(metrics = metrics, api_usage_metrics = api_usage_metrics)
     score_data = compute_score(metrics = metrics, scoring_config = scoring_config)
 
     updated = dict(record)
     updated["parsed_prediction"] = metrics["final_answer"]
     updated.update(metrics)
     updated.update(score_data)
+    updated.update(api_usage_metrics)
     return updated
 
 

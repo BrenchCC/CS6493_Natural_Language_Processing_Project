@@ -9,8 +9,8 @@ from typing import Dict
 
 DEFAULT_SCORING_CONFIG: Dict[str, Any] = {
     "weights": {
-        "answer": 0.3,
-        "length": 0.5,
+        "answer": 0.5,
+        "length": 0.3,
         "reflection": 0.2,
     },
     "params": {
@@ -22,6 +22,7 @@ DEFAULT_SCORING_CONFIG: Dict[str, Any] = {
         "tau_tail_ratio": 0.2,
         "reflection_count_ref": 1,
         "tau_reflection": 2.0,
+        "correct_score_floor": 0.6,
     },
 }
 
@@ -103,6 +104,8 @@ def _validate_inputs(metrics: Dict[str, Any], config: Dict[str, Any]) -> tuple[f
     for param_name in ("tau_length", "tau_answer_count", "tau_tail_ratio", "tau_reflection"):
         if float(params[param_name]) <= 0:
             raise ValueError(f"{param_name} must be positive")
+    if not 0.0 <= float(params["correct_score_floor"]) <= 1.0:
+        raise ValueError("correct_score_floor must be within [0, 1]")
 
     weight_sum = float(weights["answer"]) + float(weights["length"]) + float(weights["reflection"])
     if not math.isclose(weight_sum, 1.0, rel_tol = 1e-9, abs_tol = 1e-9):
@@ -134,7 +137,8 @@ def compute_score(metrics: Dict[str, Any], scoring_config: Dict[str, Any] | None
         * (reflection_factor ** float(weights["reflection"]))
     )
     efficiency_i = max(0.0, min(1.0, efficiency_i))
-    score_i = accuracy * efficiency_i
+    correct_score_floor = float(params["correct_score_floor"])
+    score_i = accuracy * (correct_score_floor + (1.0 - correct_score_floor) * efficiency_i)
     score_i = max(0.0, min(1.0, score_i))
 
     return {

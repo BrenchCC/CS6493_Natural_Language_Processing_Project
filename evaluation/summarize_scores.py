@@ -28,6 +28,13 @@ SUMMARY_FIELDS = [
     "avg_response_length_chars",
     "avg_total_response_length_tokens",
     "avg_total_response_length_chars",
+    "avg_api_call_count",
+    "avg_api_prompt_tokens",
+    "avg_api_completion_tokens",
+    "avg_api_total_tokens",
+    "avg_api_reasoning_tokens",
+    "avg_api_estimated_reasoning_tokens",
+    "avg_api_reasoning_content_chars",
     "avg_score_i",
     "joint_score",
     "mean_sample_score",
@@ -58,6 +65,13 @@ def summarize_records(records: List[Dict[str, Any]]) -> Dict[str, Any]:
             "avg_response_length_chars": 0.0,
             "avg_total_response_length_tokens": 0.0,
             "avg_total_response_length_chars": 0.0,
+            "avg_api_call_count": 0.0,
+            "avg_api_prompt_tokens": 0.0,
+            "avg_api_completion_tokens": 0.0,
+            "avg_api_total_tokens": 0.0,
+            "avg_api_reasoning_tokens": 0.0,
+            "avg_api_estimated_reasoning_tokens": 0.0,
+            "avg_api_reasoning_content_chars": 0.0,
             "avg_score_i": 0.0,
             "joint_score": 0.0,
             "mean_sample_score": 0.0,
@@ -100,6 +114,19 @@ def summarize_records(records: List[Dict[str, Any]]) -> Dict[str, Any]:
         ),
         "avg_total_response_length_chars": mean(
             float(record.get("total_response_length_chars", record.get("response_length_chars", 0)))
+            for record in records
+        ),
+        "avg_api_call_count": mean(float(record.get("api_call_count", 0.0)) for record in records),
+        "avg_api_prompt_tokens": mean(float(record.get("api_prompt_tokens", 0.0)) for record in records),
+        "avg_api_completion_tokens": mean(float(record.get("api_completion_tokens", 0.0)) for record in records),
+        "avg_api_total_tokens": mean(float(record.get("api_total_tokens", 0.0)) for record in records),
+        "avg_api_reasoning_tokens": mean(float(record.get("api_reasoning_tokens", 0.0)) for record in records),
+        "avg_api_estimated_reasoning_tokens": mean(
+            float(record.get("api_estimated_reasoning_tokens", 0.0))
+            for record in records
+        ),
+        "avg_api_reasoning_content_chars": mean(
+            float(record.get("api_reasoning_content_chars", 0.0))
             for record in records
         ),
         "avg_score_i": mean_sample_score,
@@ -151,6 +178,19 @@ def summarize_all(config_path: str) -> Dict[str, str]:
             ],
             "total_response_length_chars": [
                 float(record.get("total_response_length_chars", record.get("response_length_chars", 0.0)))
+                for record in records
+            ],
+            "api_call_count": [float(record.get("api_call_count", 0.0)) for record in records],
+            "api_prompt_tokens": [float(record.get("api_prompt_tokens", 0.0)) for record in records],
+            "api_completion_tokens": [float(record.get("api_completion_tokens", 0.0)) for record in records],
+            "api_total_tokens": [float(record.get("api_total_tokens", 0.0)) for record in records],
+            "api_reasoning_tokens": [float(record.get("api_reasoning_tokens", 0.0)) for record in records],
+            "api_estimated_reasoning_tokens": [
+                float(record.get("api_estimated_reasoning_tokens", 0.0))
+                for record in records
+            ],
+            "api_reasoning_content_chars": [
+                float(record.get("api_reasoning_content_chars", 0.0))
                 for record in records
             ],
             "score_i": [float(record.get("score_i", 0.0)) for record in records],

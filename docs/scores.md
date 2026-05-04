@@ -27,7 +27,7 @@
 | 字段 | 类型 | 说明 |
 |---|---|---|
 | `accuracy` / `is_correct` | int | 是否答对，取值为 0 或 1 |
-| `response_length_tokens` | int | 最终回答的近似 token 长度；当前实现用空格切分估计 |
+| `response_length_tokens` | int | 最终回答的近似 token 长度；按 `max(字符数 / 4, 单词数 / 0.75)` 向上取整估计 |
 | `response_length_chars` | int | 最终回答字符长度 |
 | `total_response_length_tokens` | int | 全流程生成文本的近似 token 长度；多轮/多采样方法会合并中间输出 |
 | `total_response_length_chars` | int | 全流程生成文本字符长度 |
@@ -56,8 +56,8 @@
 ```python
 SCORING_CONFIG = {
     "weights": {
-        "answer": 0.3,
-        "length": 0.5,
+        "answer": 0.5,
+        "length": 0.3,
         "reflection": 0.2,
     },
     "params": {
@@ -69,6 +69,7 @@ SCORING_CONFIG = {
         "tau_tail_ratio": 0.2,
         "reflection_count_ref": 1,
         "tau_reflection": 2.0,
+        "correct_score_floor": 0.6,
     },
 }
 ```
@@ -138,14 +139,18 @@ efficiency_i = (
     * reflection_factor ** weight_reflection
 )
 
-score_i = accuracy * efficiency_i
+score_i = accuracy * (
+    correct_score_floor
+    + (1 - correct_score_floor) * efficiency_i
+)
 score_i = clip(score_i, 0.0, 1.0)
 ```
 
 含义：
 
 - 错题直接为 0
-- 对题后再看效率项
+- 对题后以 `correct_score_floor` 保留主要准确率贡献
+- 效率项只调节正确样本剩余部分
 - 所有子因子都约束在 `(0, 1]`
 
 ---
@@ -168,10 +173,13 @@ mean_efficiency_on_correct = mean(record["efficiency_i"] for record in correct_r
 
 ### 5.3 `joint_score`
 
-概念上：
+accuracy-first 评分下：
 
 ```python
-joint_score = accuracy * mean_efficiency_on_correct
+joint_score = accuracy * (
+    correct_score_floor
+    + (1 - correct_score_floor) * mean_efficiency_on_correct
+)
 ```
 
 当前实现里直接写为：
@@ -281,7 +289,7 @@ ValueError("Missing required metric field: response_length")
 
 ### 7.3 近似性质说明
 
-- `response_length_tokens` 是近似值，不是 tokenizer 真正切词数
+- `response_length_tokens` 是近似值，不是 tokenizer 真正切词数；当前近似规则为 1 token ≈ 4 个字符，或 1 token ≈ 0.75 个英文单词，因此 75 个单词约等于 100 tokens
 - `tail_ratio` 与 `first_answer_token_idx` 都是基于字符串位置计算
 
 ---
@@ -291,5 +299,5 @@ ValueError("Missing required metric field: response_length")
 1. `reflection_factor` 从双边惩罚改成单边惩罚
 2. `tail_factor` 只在 `answer_count >= 2` 时启用
 3. `length_factor` 只惩罚过长，不惩罚过短
-4. 默认权重改为 `answer=0.3 / length=0.5 / reflection=0.2`
+4. 默认权重改为 `answer=0.5 / length=0.3 / reflection=0.2`，正确样本分数下限为 `0.6`
 5. 汇总输出从单一总分扩展为 `joint_score + mean_efficiency_on_correct + 子因子均值`

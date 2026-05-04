@@ -115,6 +115,19 @@ def test_total_response_length_preferred_for_penalty() -> None:
     assert score_data["length_factor"] < 1.0
 
 
+def test_correct_answer_score_floor() -> None:
+    """Ensure correct answers keep the configured accuracy-first score floor."""
+    metrics = _base_metrics()
+    metrics["total_response_length_tokens"] = 100000
+    metrics["answer_count"] = 100
+    metrics["reflection_count"] = 100
+
+    score_data = compute_score(metrics = metrics)
+
+    assert score_data["efficiency_i"] < 0.1
+    assert score_data["score_i"] >= 0.6
+
+
 def test_low_reflection_not_penalized() -> None:
     """Ensure reflection penalty is one-sided."""
     metrics = _base_metrics()

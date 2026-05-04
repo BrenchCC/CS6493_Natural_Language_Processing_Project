@@ -1,0 +1,214 @@
+\documentclass[conference]{IEEEtran}
+\IEEEoverridecommandlockouts
+\usepackage[UTF8]{ctex}
+\usepackage{cite}
+\usepackage{amsmath,amssymb}
+\usepackage{booktabs}
+\usepackage{graphicx}
+\usepackage{array}
+\usepackage{makecell}
+\usepackage{placeins}
+\usepackage{url}
+\usepackage[hidelinks]{hyperref}
+
+\newcommand{\qwen}{Qwen2.5-Math-1.5B}
+\newcommand{\deepseek}{DeepSeek-R1-Distill-Qwen-1.5B}
+\newcommand{\mathfive}{MATH-500}
+
+\begin{document}
+
+\title{小型开源大语言模型的数学推理能力：\\提示方法准确率与回答效率评估}
+
+\author{\IEEEauthorblockN{Baizheng Chen}
+\IEEEauthorblockA{Department of Computer Science\\
+Student ID: 72510800}
+}
+
+\maketitle
+
+\begin{abstract}
+本文完成 CS6493 课程项目题目一：大语言模型的数学推理能力评估。我们在 \mathfive{}、GSM8K 和 AIME 2024 上评估两个小型数学推理模型：\qwen{} 与 \deepseek{}。方法包括四个基础方法：零样本 Chain-of-Thought、少样本 Chain-of-Thought、Self-Refine 与 Self-Consistency；同时加入两个扩展方法：作为主要纯提示方法的 Plan-and-Solve，以及作为可选工具增强方法的 Tool-Integrated Reasoning。TIR 也可以被解释为轻量 agentic 推理模式，因为模型可以决定何时调用工具、观察结果，并继续完成解题。除准确率和最终回答长度外，本文还报告总生成长度，以及一个基于正确性门控、长度惩罚、答案重复惩罚和过度反思惩罚的行为感知综合分数。
+\end{abstract}
+
+\section{引言}
+大语言模型能够生成流畅的逐步解答，但数学推理仍然困难，因为模型需要理解符号表达、执行多步逻辑，并输出精确的最终答案。课程项目要求在 \mathfive{}、GSM8K 和 AIME 2024 上比较不同提示方法，并以准确率和回答长度作为关键指标。
+
+本项目在满足要求的基础上加入了效率视角。一个方法如果需要很长、重复的推理才能得到正确答案，并不等价于一个能简洁得到相同答案的方法。这个区别对 Self-Consistency、Self-Refine、Plan-and-Solve 和工具增强方法尤其重要，因为这些方法可能为同一道题触发多轮生成或工具调用。
+
+本文的主要扩展方法是 \texttt{plan\_solve}。它是纯 prompt-only 方法，因此可以与 CoT、Self-Refine 和 Self-Consistency 公平比较。本文也报告 \texttt{tir}，即 Tool-Integrated Reasoning，作为独立的工具增强扩展。由于 TIR 允许 Python 执行，它不被当作普通 prompt-only baseline；但这种设定也是它的主要研究价值，因为它把数学推理推进到 reason、tool invocation、observation、continuation 的 agentic 循环。
+
+\section{相关工作}
+CoT prompting 通过显式中间推理步骤提升模型推理能力 \cite{wei2022cot}。Self-Consistency 采样多条推理路径并聚合答案，以提升鲁棒性 \cite{wang2022selfconsistency}。Self-Refine 让模型对自身输出进行批判和修订 \cite{madaan2024selfrefine}。Plan-and-Solve 首先要求模型分解任务，然后按计划求解，主要针对零样本推理中的漏步错误 \cite{wang2023plansolve}。
+
+工具增强方法将自然语言推理与可执行计算结合。ToRA 表明，通过交替生成推理文本和调用外部计算工具，可以显著提升数学求解能力 \cite{gou2023tora}。本文的 TIR 不是训练过的 ToRA 模型，而是一个 prompt 层面的工具循环：当模型认为需要计算时生成 Python 代码块，系统执行后再把结果返回给模型。这使 TIR 不只是更长的提示，而是一个小型 agentic workflow：模型判断是否需要工具，生成可执行 action，接收 observation，再修正剩余推理。
+
+数据集和模型也对应已有研究。GSM8K 测试小学数学文字题 \cite{cobbe2021gsm8k}，MATH 提供竞赛风格数学题 \cite{hendrycks2021math}。Qwen2.5-Math 是面向数学能力优化的 Qwen 模型系列 \cite{yang2024qwenmath}，DeepSeek-R1-Distill-Qwen 是随 DeepSeek-R1 发布的蒸馏推理模型 \cite{deepseek2025r1}。此外，NoWait 研究了 ``Wait'' 等显式反思词带来的推理成本 \cite{wang2025nowait}，Dynamic Early Exit 研究了长推理中的答案感知提前停止 \cite{yang2025earlyexit}。本文只把这些工作作为指标设计动机，而不是声称实现了解码阶段的 early exit。
+
+\section{方法}
+\subsection{模型与数据}
+本文评估 \qwen{} 和 \deepseek{}。数据集使用项目中的固定采样文件：\mathfive{} 和 GSM8K 各 50 题，AIME 2024 为 30 题。因此每个模型-方法组合共 130 道题。
+
+\subsection{提示方法}
+表~\ref{tab:methods} 定义本文报告的六种方法，并将提示思想和对话形态分开说明。\texttt{cot\_zero} 与 \texttt{cot\_few\_shot} 是单轮方法；\texttt{self\_consistency} 不是迭代式多轮对话，而是对同一题发起五次相互独立的单轮采样；\texttt{self\_refine}、\texttt{plan\_solve} 与 \texttt{tir} 属于多轮或多阶段方法，其中 TIR 还是 agentic 工具循环，因为 Python 执行可以插入模型调用之间，工具输出会成为下一步推理的 observation。
+
+\begin{table}[t]
+\centering
+\caption{提示方法定义。}
+\label{tab:methods}
+\resizebox{\columnwidth}{!}{
+\begin{tabular}{llp{0.54\columnwidth}}
+\toprule
+方法 & 对话形态 & 定义 \\
+\midrule
+\texttt{cot\_zero} & 单轮 & 零样本 Chain-of-Thought。模型只接收目标题目，被要求逐步推理，并以 boxed final answer 结束。 \\
+\texttt{cot\_few\_shot} & 单轮 & 少样本 Chain-of-Thought。提示中加入三个 worked examples，用于约束解题格式和推理风格。 \\
+\texttt{self\_refine} & 多轮 & Solve-critique-refine。模型先写初始解答，再批判该解答，最后根据批判重写最终解答。 \\
+\texttt{self\_consistency} & 多采样 & 采样投票式 CoT。模型独立采样五个单轮解答，抽取最终答案后多数投票，并选择第一次命中投票答案的完整响应作为最终响应。 \\
+\texttt{plan\_solve} & 两轮 & Plan-and-Solve。模型先写简短编号计划，再按该计划完成解题。 \\
+\texttt{tir} & Agentic 工具循环 & Tool-Integrated Reasoning。模型可以生成 Python code block，观察返回的 output block，并基于该证据继续推理。 \\
+\bottomrule
+\end{tabular}}
+\end{table}
+
+\subsection{指标}
+准确率是主指标。当解析出的预测答案与标准答案在数学意义上相等时，该样本记为正确。回答长度被拆成最终回答长度和总生成长度。最终回答长度是提交给 grader 的文本长度；总生成长度包括中间输出，例如 Plan-and-Solve 的 plan + solve、Self-Refine 的 solve + critique + refine、Self-Consistency 的所有采样，以及 TIR 的完整工具 transcript。当存在完整 token 计数元数据时，总生成 token 使用记录到的生成长度，其中包括生成的代码和记录到的 reasoning 文本；否则 token 长度按 $\lceil\max(\text{字符数}/4,\text{单词数}/0.75)\rceil$ 估算。字符长度是原始字符串长度。
+
+每个样本的综合分数先由正确性门控。效率项定义为：
+\begin{equation}
+\text{efficiency}_i =
+\text{answer}^{0.5}_i
+\text{length}^{0.3}_i
+\text{reflection}^{0.2}_i.
+\end{equation}
+最终单样本分数采用 accuracy-first 形式：
+\begin{equation}
+\text{score}_i = c_i \cdot \left(0.6 + 0.4 \cdot \text{efficiency}_i\right),
+\end{equation}
+其中 $c_i \in \{0,1\}$ 表示答案是否正确。因此错题仍为 0，答对样本保留主要准确率贡献，效率项只作为次要修正。三个因子的定义如下。
+
+\textbf{长度因子。} 令 $L_i$ 为全流程总生成 token 数，$L_{\text{ref}}=1024$，$\tau_L=512$：
+\begin{equation}
+\text{length}_i=\exp\left(-\frac{\max(0,L_i-L_{\text{ref}})}{\tau_L}\right).
+\end{equation}
+该因子只惩罚过长生成，不惩罚短回答。
+
+\textbf{答案因子。} 系统统计答案信号数量 $A_i$，包括 \texttt{\textbackslash boxed\{}、``final answer is''、``the answer is''、``answer:'' 等。尾部比例 $R_i$ 定义为从第一个答案信号到最终响应末尾的字符比例；若没有答案信号，则 $R_i=0$。答案因子为
+\begin{align}
+\text{count}_i &= \exp\left(-\max(0,A_i-1)\right),\\
+\text{tail}_i &= 
+\begin{cases}
+1, & A_i < 2,\\
+\exp\left(-\frac{\max(0,R_i-0.2)}{0.2}\right), & A_i \ge 2,
+\end{cases}\\
+\text{answer}_i &= \text{count}_i \cdot \text{tail}_i.
+\end{align}
+它用于惩罚重复声明答案，以及第一次答案之后继续生成过长内容。
+
+\textbf{反思因子。} 系统统计反思提示词数量 $F_i$，例如 ``wait''、``however''、``check''、``verify''、``rethink'' 及中文对应词。参考数量为 1，$\tau_F=2$：
+\begin{equation}
+\text{reflection}_i=\exp\left(-\frac{\max(0,F_i-1)}{2}\right).
+\end{equation}
+本文的 joint score 是样本分数均值。正确样本上的平均 efficiency 作为独立诊断指标报告。
+
+\section{实验}
+当同一模型、方法和数据划分存在多条评测记录时，表格只报告 joint score 最高的记录。Overall 行从 overall summary 中独立选择，不由单数据集行重新加权计算。
+
+\begin{table*}[t]
+\centering
+\caption{130 道题上的 overall 结果。}
+\label{tab:overall}
+\resizebox{\textwidth}{!}{
+\begin{tabular}{llcccc}
+\toprule
+模型 & 方法 & Accuracy & Final Tok. & Total Tok. & Joint \\
+\midrule
+\deepseek{} & \texttt{cot\_zero} & 0.785 & 4100.1 & 4100.1 & 0.5112 \\
+\deepseek{} & \texttt{cot\_few\_shot} & 0.785 & 3534.8 & 3534.8 & 0.4996 \\
+\deepseek{} & \texttt{self\_refine} & 0.792 & 362.3 & 4709.8 & 0.5766 \\
+\deepseek{} & \texttt{self\_consistency} & 0.854 & 4217.5 & 21449.8 & 0.5214 \\
+\deepseek{} & \texttt{plan\_solve} & 0.892 & 174.1 & 2252.7 & 0.6955 \\
+\deepseek{} & \texttt{tir} & 0.908 & 167.5 & 1460.3 & 0.7140 \\
+\midrule
+\qwen{} & \texttt{cot\_zero} & 0.531 & 2248.2 & 2248.2 & 0.5176 \\
+\qwen{} & \texttt{cot\_few\_shot} & 0.515 & 2533.6 & 2533.6 & 0.4604 \\
+\qwen{} & \texttt{self\_refine} & 0.508 & 348.5 & 1001.1 & 0.4726 \\
+\qwen{} & \texttt{self\_consistency} & 0.562 & 848.9 & 4524.0 & 0.4789 \\
+\qwen{} & \texttt{plan\_solve} & 0.785 & 380.9 & 721.7 & 0.6570 \\
+\qwen{} & \texttt{tir} & 0.800 & 371.9 & 537.1 & 0.6681 \\
+\bottomrule
+\end{tabular}}
+\end{table*}
+
+\begin{table*}[t]
+\centering
+\caption{各数据集的 accuracy。}
+\label{tab:dataset}
+\resizebox{\textwidth}{!}{
+\begin{tabular}{llccc}
+\toprule
+模型 & 方法 & \mathfive{} & GSM8K & AIME 2024 \\
+\midrule
+\deepseek{} & \texttt{cot\_zero} & 0.900 & 0.900 & 0.400 \\
+\deepseek{} & \texttt{cot\_few\_shot} & 0.920 & 0.920 & 0.333 \\
+\deepseek{} & \texttt{self\_refine} & 0.880 & 0.920 & 0.433 \\
+\deepseek{} & \texttt{self\_consistency} & 0.920 & 0.980 & 0.533 \\
+\deepseek{} & \texttt{plan\_solve} & 0.940 & 0.980 & 0.667 \\
+\deepseek{} & \texttt{tir} & 0.960 & 0.940 & 0.767 \\
+\midrule
+\qwen{} & \texttt{cot\_zero} & 0.560 & 0.760 & 0.100 \\
+\qwen{} & \texttt{cot\_few\_shot} & 0.560 & 0.780 & 0.000 \\
+\qwen{} & \texttt{self\_refine} & 0.560 & 0.740 & 0.033 \\
+\qwen{} & \texttt{self\_consistency} & 0.580 & 0.840 & 0.067 \\
+\qwen{} & \texttt{plan\_solve} & 0.860 & 0.960 & 0.367 \\
+\qwen{} & \texttt{tir} & 0.900 & 0.940 & 0.400 \\
+\bottomrule
+\end{tabular}}
+\end{table*}
+
+\begin{table}[t]
+\centering
+\caption{正确样本上的 overall 行为因子均值。}
+\label{tab:factors}
+\resizebox{\columnwidth}{!}{
+\begin{tabular}{llccc}
+\toprule
+模型 & 方法 & Len. & Ans. & Refl. \\
+\midrule
+DS & \texttt{cot\_zero} & 0.629 & 0.248 & 0.017 \\
+DS & \texttt{cot\_few} & 0.727 & 0.083 & 0.039 \\
+DS & \texttt{self\_refine} & 0.286 & 0.648 & 0.578 \\
+DS & \texttt{self\_cons.} & 0.010 & 0.160 & 0.013 \\
+DS & \texttt{plan\_solve} & 0.608 & 0.368 & 0.983 \\
+DS & \texttt{tir} & 0.726 & 0.339 & 0.975 \\
+\midrule
+Qwen & \texttt{cot\_zero} & 1.000 & 0.918 & 0.959 \\
+Qwen & \texttt{cot\_few} & 1.000 & 0.585 & 0.961 \\
+Qwen & \texttt{self\_refine} & 0.912 & 0.804 & 0.914 \\
+Qwen & \texttt{self\_cons.} & 0.515 & 0.758 & 0.942 \\
+Qwen & \texttt{plan\_solve} & 0.963 & 0.368 & 0.979 \\
+Qwen & \texttt{tir} & 0.972 & 0.368 & 0.955 \\
+\bottomrule
+\end{tabular}}
+\end{table}
+
+表~\ref{tab:overall} 显示，\texttt{plan\_solve} 是两个模型上 accuracy 最强的 prompt-only 扩展方法，并且 joint score 高于四个基线。对 \qwen{}，它把 overall accuracy 从 prompt-only baseline 的 0.531--0.562 提升到 0.785。对 \deepseek{}，更新后的 \texttt{plan\_solve} 达到 0.892 overall accuracy，并在三个数据划分上都保持较强表现。计入完整生成 token 后，它的总生成成本不再像最终回答长度看起来那样低。
+
+TIR 仍然非常有竞争力，在 \deepseek{} 上达到最高 overall accuracy 0.908 和 0.7140 joint score；在 \qwen{} 上达到 0.800 accuracy 和 0.6681 joint score。但 TIR 不能与纯提示方法直接等价比较，因为它允许 Python 执行。因此更合理的解释是：TIR 是一种工具增强且带有 agentic 特征的扩展，展示了当模型可以把部分求解过程外化为可执行 action、观察结果并继续推理时，算术和符号计算如何提升准确率；同时它也会因为代码、工具轮次和记录到的 reasoning 带来额外生成成本。
+
+表~\ref{tab:factors} 说明在 accuracy-first 分数下，效率诊断仍有意义。Self-Consistency 可以有高准确率，但它会采样五个独立输出，因此总生成长度很高。TIR 与 Plan-and-Solve 的最终回答仍较短，但在计入完整生成长度后总 token 成本更高。这说明最终回答长度和总生成成本必须分开报告。
+
+\section{讨论}
+最稳妥的最终扩展方法是 Plan-and-Solve。它的解释自然：数学解题通常先确定步骤，再执行计算。它也更公平，因为没有使用外部计算器或 verifier。更新后的实验结果显示，它在两个模型上都带来明显 accuracy 收益，但总生成成本需要和简洁的最终回答分开报告。
+
+TIR 更有亮点，但必须谨慎表述。它不应被写成普通 prompt-only baseline，因为它给模型提供了 Python interpreter。它的收益来自语言推理和工具执行的结合。这个设定应该被突出，而不是被弱化：它是一个紧凑的 agentic pattern，模型先选择 action，接收 observation，再更新最终解答。对于数学推理任务，这尤其有价值，因为小模型常见错误正是算术或符号执行错误。它也指向一个比静态 prompting 更宽的方向：小型数学模型可以和可靠工具结合，形成更强的 solver agent。
+
+行为感知指标的意义在于，单纯 accuracy 会隐藏低效推理。Self-Consistency 通过采样提高准确率，但总生成成本高。DeepSeek 的 CoT 运行也出现非常长的最终回答，即使答对也会降低效率。答案因子和反思因子进一步帮助诊断重复答案信号和过度自我修正语言。它们不替代 accuracy，而是作为诊断指标使用。
+
+\section{结论}
+本文在 \mathfive{}、GSM8K 与 AIME 2024 上评估了两个小型数学推理模型。最终建议将 Plan-and-Solve 作为主要 proposed prompt-only 方法，因为它公平、简单，且贴合数学解题流程。TIR 可作为可选的工具增强与 agentic 扩展，展示强实验结果，但必须明确说明其 Python 执行设定。最终报告应同时强调 accuracy 与 response efficiency，并区分最终提交答案长度和全流程生成成本。
+
+\FloatBarrier
+\bibliographystyle{IEEEtran}
+\bibliography{references}
+
+\end{document}

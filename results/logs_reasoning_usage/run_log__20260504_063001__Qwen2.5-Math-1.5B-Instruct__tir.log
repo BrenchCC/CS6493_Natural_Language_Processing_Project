@@ -1,0 +1,72 @@
+[2026-05-04T06:30:01Z] [INFO] [20260504_063001] run_started {'backend': 'api',
+ 'model_name': 'Qwen/Qwen2.5-Math-1.5B-Instruct',
+ 'model_alias': 'Qwen2.5-Math-1.5B-Instruct',
+ 'method_name': 'tir',
+ 'reasoning_mode': 'api_ark',
+ 'cannot_disable_thinking': False,
+ 'disable_sampling': False,
+ 'log_path': '/Users/brench/brench_project_collections/School_Project/CS6493_Natural_Language_Processing_Project/results/logs_reasoning_usage/run_log__20260504_063001__Qwen2.5-Math-1.5B-Instruct__tir.log'}
+[2026-05-04T06:30:01Z] [INFO] [20260504_063001] engine_build_started {'model_name': 'Qwen/Qwen2.5-Math-1.5B-Instruct', 'backend': 'api'}
+[2026-05-04T06:30:01Z] [INFO] [20260504_063001] engine_build_completed {'model_name': 'Qwen/Qwen2.5-Math-1.5B-Instruct',
+ 'backend': 'api',
+ 'api_mode': 'ark',
+ 'api_identifier': 'Doubao-1.5-pro-32k-250115',
+ 'api_model_env': 'LLM_MODEL',
+ 'api_base_url_env': 'LLM_API_BASE_URL',
+ 'api_rpm': 30000,
+ 'api_tpm': 5000000,
+ 'api_window_s': 60.0}
+[2026-05-04T06:30:01Z] [INFO] [20260504_063001] api_parallel_inference_configured {'num_workers': 8, 'rpm': 30000, 'tpm': 5000000, 'window_s': 60.0}
+[2026-05-04T06:30:01Z] [INFO] [20260504_063001] dataset_started {'dataset_name': 'math500',
+ 'sample_count': 50,
+ 'sample_path': '/Users/brench/brench_project_collections/School_Project/CS6493_Natural_Language_Processing_Project/data/processed/math500_sample.jsonl'}
+[2026-05-04T06:31:56Z] [INFO] [20260504_063001] raw_write_started {'dataset_name': 'math500',
+ 'raw_file': '/Users/brench/brench_project_collections/School_Project/CS6493_Natural_Language_Processing_Project/results/raw_reasoning_usage/Qwen2.5-Math-1.5B-Instruct__math500__tir__20260504_063001.jsonl'}
+[2026-05-04T06:31:56Z] [INFO] [20260504_063001] raw_write_completed {'dataset_name': 'math500',
+ 'raw_file': '/Users/brench/brench_project_collections/School_Project/CS6493_Natural_Language_Processing_Project/results/raw_reasoning_usage/Qwen2.5-Math-1.5B-Instruct__math500__tir__20260504_063001.jsonl'}
+[2026-05-04T06:31:56Z] [INFO] [20260504_063001] evaluation_started {'dataset_name': 'math500',
+ 'raw_file': '/Users/brench/brench_project_collections/School_Project/CS6493_Natural_Language_Processing_Project/results/raw_reasoning_usage/Qwen2.5-Math-1.5B-Instruct__math500__tir__20260504_063001.jsonl',
+ 'evaluated_file': '/Users/brench/brench_project_collections/School_Project/CS6493_Natural_Language_Processing_Project/results/evaluated_reasoning_usage/Qwen2.5-Math-1.5B-Instruct__math500__tir__20260504_063001.jsonl',
+ 'eval_num_workers': 8}
+[2026-05-04T06:31:56Z] [INFO] [20260504_063001] dataset_completed {'dataset_name': 'math500',
+ 'raw_file': '/Users/brench/brench_project_collections/School_Project/CS6493_Natural_Language_Processing_Project/results/raw_reasoning_usage/Qwen2.5-Math-1.5B-Instruct__math500__tir__20260504_063001.jsonl',
+ 'evaluated_file': '/Users/brench/brench_project_collections/School_Project/CS6493_Natural_Language_Processing_Project/results/evaluated_reasoning_usage/Qwen2.5-Math-1.5B-Instruct__math500__tir__20260504_063001.jsonl',
+ 'sample_count': 50,
+ 'accuracy': 0.9}
+[2026-05-04T06:31:56Z] [INFO] [20260504_063001] dataset_started {'dataset_name': 'gsm8k',
+ 'sample_count': 50,
+ 'sample_path': '/Users/brench/brench_project_collections/School_Project/CS6493_Natural_Language_Processing_Project/data/processed/gsm8k_sample.jsonl'}
+[2026-05-04T06:32:44Z] [INFO] [20260504_063001] raw_write_started {'dataset_name': 'gsm8k',
+ 'raw_file': '/Users/brench/brench_project_collections/School_Project/CS6493_Natural_Language_Processing_Project/results/raw_reasoning_usage/Qwen2.5-Math-1.5B-Instruct__gsm8k__tir__20260504_063001.jsonl'}
+[2026-05-04T06:32:44Z] [INFO] [20260504_063001] raw_write_completed {'dataset_name': 'gsm8k',
+ 'raw_file': '/Users/brench/brench_project_collections/School_Project/CS6493_Natural_Language_Processing_Project/results/raw_reasoning_usage/Qwen2.5-Math-1.5B-Instruct__gsm8k__tir__20260504_063001.jsonl'}
+[2026-05-04T06:32:44Z] [INFO] [20260504_063001] evaluation_started {'dataset_name': 'gsm8k',
+ 'raw_file': '/Users/brench/brench_project_collections/School_Project/CS6493_Natural_Language_Processing_Project/results/raw_reasoning_usage/Qwen2.5-Math-1.5B-Instruct__gsm8k__tir__20260504_063001.jsonl',
+ 'evaluated_file': '/Users/brench/brench_project_collections/School_Project/CS6493_Natural_Language_Processing_Project/results/evaluated_reasoning_usage/Qwen2.5-Math-1.5B-Instruct__gsm8k__tir__20260504_063001.jsonl',
+ 'eval_num_workers': 8}
+[2026-05-04T06:32:44Z] [INFO] [20260504_063001] dataset_completed {'dataset_name': 'gsm8k',
+ 'raw_file': '/Users/brench/brench_project_collections/School_Project/CS6493_Natural_Language_Processing_Project/results/raw_reasoning_usage/Qwen2.5-Math-1.5B-Instruct__gsm8k__tir__20260504_063001.jsonl',
+ 'evaluated_file': '/Users/brench/brench_project_collections/School_Project/CS6493_Natural_Language_Processing_Project/results/evaluated_reasoning_usage/Qwen2.5-Math-1.5B-Instruct__gsm8k__tir__20260504_063001.jsonl',
+ 'sample_count': 50,
+ 'accuracy': 0.94}
+[2026-05-04T06:32:44Z] [INFO] [20260504_063001] dataset_started {'dataset_name': 'aime2024',
+ 'sample_count': 30,
+ 'sample_path': '/Users/brench/brench_project_collections/School_Project/CS6493_Natural_Language_Processing_Project/data/processed/aime2024_sample.jsonl'}
+[2026-05-04T06:36:19Z] [INFO] [20260504_063001] raw_write_started {'dataset_name': 'aime2024',
+ 'raw_file': '/Users/brench/brench_project_collections/School_Project/CS6493_Natural_Language_Processing_Project/results/raw_reasoning_usage/Qwen2.5-Math-1.5B-Instruct__aime2024__tir__20260504_063001.jsonl'}
+[2026-05-04T06:36:19Z] [INFO] [20260504_063001] raw_write_completed {'dataset_name': 'aime2024',
+ 'raw_file': '/Users/brench/brench_project_collections/School_Project/CS6493_Natural_Language_Processing_Project/results/raw_reasoning_usage/Qwen2.5-Math-1.5B-Instruct__aime2024__tir__20260504_063001.jsonl'}
+[2026-05-04T06:36:19Z] [INFO] [20260504_063001] evaluation_started {'dataset_name': 'aime2024',
+ 'raw_file': '/Users/brench/brench_project_collections/School_Project/CS6493_Natural_Language_Processing_Project/results/raw_reasoning_usage/Qwen2.5-Math-1.5B-Instruct__aime2024__tir__20260504_063001.jsonl',
+ 'evaluated_file': '/Users/brench/brench_project_collections/School_Project/CS6493_Natural_Language_Processing_Project/results/evaluated_reasoning_usage/Qwen2.5-Math-1.5B-Instruct__aime2024__tir__20260504_063001.jsonl',
+ 'eval_num_workers': 8}
+[2026-05-04T06:36:19Z] [INFO] [20260504_063001] dataset_completed {'dataset_name': 'aime2024',
+ 'raw_file': '/Users/brench/brench_project_collections/School_Project/CS6493_Natural_Language_Processing_Project/results/raw_reasoning_usage/Qwen2.5-Math-1.5B-Instruct__aime2024__tir__20260504_063001.jsonl',
+ 'evaluated_file': '/Users/brench/brench_project_collections/School_Project/CS6493_Natural_Language_Processing_Project/results/evaluated_reasoning_usage/Qwen2.5-Math-1.5B-Instruct__aime2024__tir__20260504_063001.jsonl',
+ 'sample_count': 30,
+ 'accuracy': 0.4}
+[2026-05-04T06:36:19Z] [INFO] [20260504_063001] summary_started {'summary_dir': '/Users/brench/brench_project_collections/School_Project/CS6493_Natural_Language_Processing_Project/results/summaries_reasoning_usage'}
+[2026-05-04T06:36:19Z] [INFO] [20260504_063001] run_completed {'summary_path': '/Users/brench/brench_project_collections/School_Project/CS6493_Natural_Language_Processing_Project/results/summaries_reasoning_usage/run_summary__20260504_063001__Qwen2.5-Math-1.5B-Instruct__tir.json',
+ 'log_path': '/Users/brench/brench_project_collections/School_Project/CS6493_Natural_Language_Processing_Project/results/logs_reasoning_usage/run_log__20260504_063001__Qwen2.5-Math-1.5B-Instruct__tir.log',
+ 'aggregate_scores_path': '/Users/brench/brench_project_collections/School_Project/CS6493_Natural_Language_Processing_Project/results/summaries_reasoning_usage/aggregate_scores.csv',
+ 'single_metric_stats_path': '/Users/brench/brench_project_collections/School_Project/CS6493_Natural_Language_Processing_Project/results/summaries_reasoning_usage/single_metric_stats.csv'}
