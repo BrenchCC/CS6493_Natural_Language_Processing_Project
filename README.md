@@ -7,9 +7,11 @@
 当前框架支持：
 1. 固定抽样数据准备
 2. 本地 vLLM 推理
-3. 逐样本自动评估与复合打分
-4. 跨数据集聚合汇总
-5. 运行日志与完整产物落盘
+3. API 推理与 reasoning usage 记录
+4. 逐样本自动评估与复合打分
+5. 跨数据集聚合汇总
+6. 报告筛选表导出
+7. 运行日志与完整产物落盘
 
 ## 实验设置
 
@@ -27,9 +29,13 @@
 - `cot_few_shot`
 - `self_refine`
 - `self_consistency`
+- `plan_solve`
 - `tir`
 
-其中 `tir` 当前采用工具循环：模型输出 ` ```python ` 代码块后暂停，框架在隔离 Python 子进程中执行代码，再将结果以 ` ```output ` 回填，最终答案要求严格输出为 `Final Answer: \boxed{...}`。
+其中：
+- `plan_solve` 采用两阶段流程：先生成简短计划，再按计划完成求解
+- `tir` 当前采用 agentic 工具循环：模型输出 ` ```python ` 代码块后暂停，框架在隔离 Python 子进程中执行代码，再将结果以 ` ```output ` 回填，模型继续推理
+- `tir` 最终答案要求严格输出为 `Final Answer: \boxed{...}`
 
 ## 项目结构
 
@@ -49,16 +55,21 @@ results/raw/                   # 原始推理结果
 results/evaluated/             # 评估后逐样本结果
 results/summaries/             # 聚合统计与运行摘要
 results/logs/                  # 运行日志
+results/raw_reasoning_usage/   # API reasoning 运行的原始结果
+results/evaluated_reasoning_usage/   # 带 reasoning usage 的逐样本结果
+results/summaries_reasoning_usage/   # reasoning usage 运行汇总
+results/logs_reasoning_usage/        # reasoning usage 运行日志
+delivery/reports/              # 最终中英文报告与 PDF
+scripts/reports/               # 报告筛选与导出脚本
 ```
 
 ## 环境准备
 
 建议 Python 版本：`3.10+`
 
-推荐直接使用现有 `conda` 环境：
+推荐新建虚拟环境后安装依赖：
 
 ```bash
-conda activate llm_train
 pip install -U pip
 pip install -r requirements.txt
 ```
@@ -83,6 +94,8 @@ bash scripts/models/download_models.sh
 ### 单模型配置
 - `configs/yaml/qwen_math.yaml`：仅保留 Qwen 配置
 - `configs/yaml/deepseek_r1_math.yaml`：仅保留 DeepSeek-R1 配置
+- `configs/yaml/api_qwen_math_reasoning_usage.yaml`：Qwen 的 API reasoning 配置
+- `configs/yaml/api_deepseek_r1_math_reasoning_usage.yaml`：DeepSeek 的 API reasoning 配置
 
 ### 两个模型的推理模式差异
 - `Qwen/Qwen2.5-Math-1.5B-Instruct` 是文本模型，依赖 `cot` 类 prompt 显式触发推理
@@ -149,6 +162,51 @@ bash scripts/eval/evaluate_runs.sh configs/yaml/base.yaml
 bash scripts/eval/summarize_scores.sh configs/yaml/base.yaml
 ```
 
+### 6. 运行 API reasoning 实验
+
+Qwen 的 `plan_solve,tir`：
+
+```bash
+bash scripts/infer/run_api_qwen_reasoning.sh
+```
+
+DeepSeek 的 `plan_solve,tir`：
+
+```bash
+bash scripts/infer/run_api_deepseek_reasoning.sh
+```
+
+带参数示例：
+
+```bash
+bash scripts/infer/run_api_qwen_reasoning.sh configs/yaml/api_qwen_math_reasoning_usage.yaml 50 "gsm8k,aime2024" "plan_solve,tir"
+```
+
+说明：
+- 这些脚本默认写入 `results/*_reasoning_usage/`
+- 会记录完整生成长度所需的 usage / reasoning 元数据
+- `tir` 的代码执行环境由 YAML 中 `execution_conda_env` 控制
+
+### 7. 生成报告筛选表
+
+从常规汇总和 reasoning usage 汇总中，按 `model + method + dataset` 与 `model + method(overall)` 各保留一条报告用结果：
+
+```bash
+python scripts/reports/select_report_scores.py \
+  --aggregate results/summaries/aggregate_scores.csv \
+  --aggregate results/summaries_reasoning_usage/aggregate_scores.csv
+```
+
+输出：
+- `results/summaries/report_selected_dataset_scores.csv`
+- `results/summaries/report_selected_overall_scores.csv`
+
+筛选规则：
+- 仅保留 `cot_zero`、`cot_few_shot`、`self_refine`、`self_consistency`、`plan_solve`、`tir`
+- 同组内优先选择 `joint_score` 更高的结果
+- 对 `plan_solve` 与 `tir`，如果存在带完整 usage 的结果，则优先从这些结果中挑选
+- 输出表不会暴露 `run_id`、`source_file` 与内部 `avg_api_*` 字段
+
 ## 输出产物
 
 ### 原始推理结果
@@ -160,9 +218,14 @@ bash scripts/eval/summarize_scores.sh configs/yaml/base.yaml
 - 目录：`results/evaluated/`
 - 新增字段：`parsed_prediction`、`accuracy`、`response_length_tokens`、`response_length_chars`、`reflection_count`、`answer_count`、`first_answer_token_idx`、`tail_ratio`、`length_factor`、`count_factor`、`tail_factor`、`answer_factor`、`reflection_factor`、`efficiency_i`、`score_i`
 
+对于 API reasoning 运行：
+- 目录：`results/evaluated_reasoning_usage/`
+- 额外会保留完整生成成本所需的 usage / reasoning 元数据
+
 ### 聚合统计
 - `results/summaries/aggregate_scores.csv`
 - `results/summaries/single_metric_stats.csv`
+- `results/summaries_reasoning_usage/aggregate_scores.csv`
 - `aggregate_scores.csv` 重点字段包括：`accuracy`、`joint_score`、`mean_sample_score`、`mean_efficiency_on_correct`、`correct_count`、`total_count`、`mean_*_factor_on_correct`
 - `single_metric_stats.csv` 按单一指标输出 `mean / min / max`
 
@@ -203,22 +266,42 @@ bash scripts/eval/summarize_scores.sh configs/yaml/base.yaml
 ### `method_configs`
 - 通用采样参数：`temperature`、`top_p`、`max_tokens`
 - 可选采样控制：`repetition_penalty`
+- `plan_solve`：额外使用 `max_plan_steps`
 - `self_consistency`：额外使用 `n_samples`
-- `tir`：额外可配置 `max_tool_rounds`、`python_timeout`、`max_total_code_blocks`
+- `tir`：额外可配置 `max_tool_rounds`、`python_timeout`、`max_total_code_blocks`、`execution_conda_env`
 
 ### `scoring`
 - `weights`：`answer`、`length`、`reflection` 三类惩罚权重
 - `reflection_patterns`：用于统计过度反思信号的正则列表
-- `params`：`length_ref`、`tau_length`、`answer_count_ref`、`tau_answer_count`、`tail_ratio_ref`、`tau_tail_ratio`、`reflection_count_ref`、`tau_reflection`
+- `params`：`length_ref`、`tau_length`、`answer_count_ref`、`tau_answer_count`、`tail_ratio_ref`、`tau_tail_ratio`、`reflection_count_ref`、`tau_reflection`、`correct_score_floor`
 
 ## 评估说明
 
 - `accuracy`：答案抽取后与标准答案比对得到的正确率
-- `response_length_tokens` / `response_length_chars`：回答长度指标
+- `response_length_tokens` / `response_length_chars`：最终提交答案长度
+- `total_response_length_tokens` / `total_response_length_chars`：全流程生成长度
 - `tail_ratio`：从第一个答案信号开始计算的尾部字符占比
 - `efficiency_i`：答对后仅反映长度、答案重复与反思惩罚的效率项
-- `score_i`：在答对前提下，综合长度、答案信号次数、反思行为与拖尾比例得到的单题得分
+- `score_i`：单题综合分数
 - 评测阶段支持对每个数据集结果文件使用 `ThreadPoolExecutor` 做多线程加速，线程数由 `run.eval_num_workers` 控制
+
+当前默认得分公式：
+
+```text
+efficiency_i =
+    answer_factor^0.5
+    * length_factor^0.3
+    * reflection_factor^0.2
+
+score_i =
+    accuracy * (0.6 + 0.4 * efficiency_i)
+```
+
+说明：
+- 错题直接记 `0`
+- `length_factor` 优先基于 `total_response_length_tokens`
+- `plan_solve`、`self_refine`、`self_consistency`、`tir` 会把中间过程计入总生成长度
+- `tir` 的总生成长度包含完整工具循环 transcript
 
 ## 复现建议
 
@@ -235,7 +318,9 @@ pytest -q tests
 
 ## 更多说明
 
-更完整的中文使用文档、结果目录解释和评分配置说明见 `docs/topic1_run_guide_cn.md`。
+更完整的中文使用文档、结果目录解释和评分配置说明见：
+- `docs/topic1_run_guide_cn.md`
+- `docs/scores.md`
 
 ## 常见问题
 
