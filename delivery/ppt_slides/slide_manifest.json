@@ -1,0 +1,162 @@
+[
+  {
+    "slide": 1,
+    "title": "Mathematical Reasoning in Small Open-Weight LLMs",
+    "kicker": "CS6493 Topic 1",
+    "layout": "cover",
+    "takeaway": "The project studies not only whether a method gets the answer, but how it behaves while getting there.",
+    "has_speaker_notes": true
+  },
+  {
+    "slide": 2,
+    "title": "Can structured prompting improve math reasoning under limited compute?",
+    "kicker": "Research Question",
+    "layout": "cards",
+    "takeaway": "The evaluation target is a reliable solver behavior, not a single isolated number.",
+    "has_speaker_notes": true
+  },
+  {
+    "slide": 3,
+    "title": "A controlled small-model benchmark across three math splits",
+    "kicker": "Experimental Setup",
+    "layout": "setup",
+    "takeaway": "Each model-method run covers 130 fixed questions, making relative comparisons easier to audit.",
+    "has_speaker_notes": true
+  },
+  {
+    "slide": 4,
+    "title": "The experiment records the full reasoning trajectory, not only the final answer",
+    "kicker": "Experiment Pipeline",
+    "layout": "process",
+    "takeaway": "The evaluation unit is the complete solving trajectory, because hidden generations are part of the method.",
+    "has_speaker_notes": true
+  },
+  {
+    "slide": 5,
+    "title": "Three intervention levels: prompt context, inference structure, and tool loop",
+    "kicker": "Method Taxonomy",
+    "layout": "taxonomy",
+    "takeaway": "Similar score gains can come from very different additional computation budgets.",
+    "has_speaker_notes": true
+  },
+  {
+    "slide": 6,
+    "title": "Single-turn, multi-sample, multi-turn, and tool-loop methods have different cost surfaces",
+    "kicker": "Dialogue Design",
+    "layout": "method_cards",
+    "takeaway": "A fair comparison needs both final answer quality and full trajectory accounting.",
+    "has_speaker_notes": true
+  },
+  {
+    "slide": 7,
+    "title": "Small reasoning models fail in more than one way",
+    "kicker": "Prompt Design Problem",
+    "layout": "cards",
+    "takeaway": "The prompt design should reduce planning errors, and the metric should expose inefficient reasoning behavior.",
+    "has_speaker_notes": true
+  },
+  {
+    "slide": 8,
+    "title": "Each method changes a different part of the reasoning process",
+    "kicker": "Method Characteristics",
+    "layout": "method_cards",
+    "takeaway": "The most important contrast is not baseline versus extension, but where extra reasoning budget enters the system.",
+    "has_speaker_notes": true
+  },
+  {
+    "slide": 9,
+    "title": "Plan-and-Solve moves structure before execution",
+    "kicker": "Prompt Innovation",
+    "layout": "process",
+    "takeaway": "Plan-and-Solve is fair against prompt-only baselines because it adds structure without external tools.",
+    "has_speaker_notes": true
+  },
+  {
+    "slide": 10,
+    "title": "TIR turns math solving into a compact action-observation loop",
+    "kicker": "Agentic Extension",
+    "layout": "loop",
+    "takeaway": "TIR is closest to a ReAct-style solver loop, but with a narrow mathematical tool boundary.",
+    "has_speaker_notes": true
+  },
+  {
+    "slide": 11,
+    "title": "Why a single metric view is misleading",
+    "kicker": "Evaluation Motivation",
+    "layout": "cards",
+    "takeaway": "The metric is designed to be accuracy-first, trajectory-aware, and interpretable during error analysis.",
+    "has_speaker_notes": true
+  },
+  {
+    "slide": 12,
+    "title": "Correctness gates the score; efficiency adjusts the remaining credit",
+    "kicker": "Designed Score Formula",
+    "layout": "formula",
+    "takeaway": "The 0.6 floor keeps correctness dominant, while the 0.4 modifier separates correct samples by behavior.",
+    "has_speaker_notes": true
+  },
+  {
+    "slide": 13,
+    "title": "The factors explain why two correct methods behave differently",
+    "kicker": "Factor Decomposition",
+    "layout": "factors",
+    "takeaway": "Low length, answer, or reflection factors point to different error-analysis stories.",
+    "has_speaker_notes": true
+  },
+  {
+    "slide": 14,
+    "title": "Joint score comparison highlights the proposed methods",
+    "kicker": "Designed Score View",
+    "layout": "joint_chart",
+    "takeaway": "Plan-and-Solve leads prompt-only methods; TIR is strongest when tool use is allowed.",
+    "has_speaker_notes": true
+  },
+  {
+    "slide": 15,
+    "title": "Plan-and-Solve is the safest main contribution",
+    "kicker": "Method-Level Finding",
+    "layout": "cards",
+    "takeaway": "Plan-and-Solve is the primary proposed prompt-only method for the final presentation.",
+    "has_speaker_notes": true
+  },
+  {
+    "slide": 16,
+    "title": "TIR is strong because it changes the problem-solving loop",
+    "kicker": "Agentic Finding",
+    "layout": "comparison",
+    "takeaway": "TIR points beyond static prompting toward small solver agents with reliable tools.",
+    "has_speaker_notes": true
+  },
+  {
+    "slide": 17,
+    "title": "The three datasets play different diagnostic roles",
+    "kicker": "Dataset-Level Discussion",
+    "layout": "dataset_cards",
+    "takeaway": "AIME is where superficial gains are most likely to break; GSM8K is where structure helps most visibly.",
+    "has_speaker_notes": true
+  },
+  {
+    "slide": 18,
+    "title": "The design borrows ideas from prompting, tool use, and reasoning efficiency",
+    "kicker": "Literature Connections",
+    "layout": "literature",
+    "takeaway": "The project adapts these ideas into a lightweight prompt-level experimental pipeline.",
+    "has_speaker_notes": true
+  },
+  {
+    "slide": 19,
+    "title": "From static prompts to adaptive solver agents",
+    "kicker": "Future Work",
+    "layout": "roadmap",
+    "takeaway": "A practical next experiment is a routed solver: classify the problem, choose the reasoning mode, verify, then stop early when stable.",
+    "has_speaker_notes": true
+  },
+  {
+    "slide": 20,
+    "title": "Prompt design and metric design must be discussed together",
+    "kicker": "Takeaways",
+    "layout": "takeaways",
+    "takeaway": "Q&A",
+    "has_speaker_notes": true
+  }
+]
