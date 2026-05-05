@@ -9,6 +9,7 @@ This folder contains an English classroom presentation based on `delivery/report
 - `runtime.js`: local copy of the html-ppt runtime for navigation, overview, notes, and presenter mode.
 - `CS6493_Math_Reasoning_Presentation.pptx`: editable PowerPoint deck generated with `python-pptx`.
 - `slide_manifest.json`: slide titles, layouts, and takeaways.
+- `speaker_notes.md`: standalone notes for rehearsal and presenter reference.
 - `build_deck.py`: single-source generator for the HTML, manifest, README, and PPTX.
 - `validate_deck.py`: validation helper for PPTX structure and 16:9 HTML screenshots.
 

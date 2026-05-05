@@ -112,12 +112,16 @@ def render_html(deck_path, screenshots_dir, expected_slides):
         browser = playwright.chromium.launch(**launch_kwargs)
         page = browser.new_page(viewport = {"width": 1600, "height": 900}, device_scale_factor = 1)
         page.goto(deck_path.as_uri(), wait_until = "networkidle")
+        page.wait_for_timeout(450)
         total = page.locator(".deck > .slide").count()
         overflow = {}
+        screenshot_indices = {1, min(12, expected_slides), min(17, expected_slides), expected_slides}
         for index in range(1, total + 1):
             page.goto(deck_path.as_uri() + f"#/{index}", wait_until = "networkidle")
-            page.wait_for_timeout(150)
-            if index in {1, min(12, expected_slides), expected_slides}:
+            page.wait_for_timeout(450)
+            if page.locator("[data-math]").count():
+                page.wait_for_timeout(450)
+            if index in screenshot_indices:
                 page.screenshot(
                     path = str(screenshots_dir / f"slide_{index:02d}.png"),
                     full_page = False
@@ -127,7 +131,7 @@ def render_html(deck_path, screenshots_dir, expected_slides):
                 () => {
                   const active = document.querySelector('.slide.is-active');
                   const root = active.getBoundingClientRect();
-                  return Array.from(active.querySelectorAll('h1,h2,h3,p,span,footer,.card,.step,.lane,.loop-node,.formula-line,.chart-panel'))
+                  return Array.from(active.querySelectorAll('h1,h2,h3,p,span,footer,.card,.step,.lane,.loop-node,.formula-line,.chart-panel,.matrix-panel,.score-table,.mjx-container'))
                     .map((el) => {
                       const box = el.getBoundingClientRect();
                       return {

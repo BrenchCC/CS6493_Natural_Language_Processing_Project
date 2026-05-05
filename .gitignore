@@ -426,3 +426,5 @@ CLAUDE.md
 .codex*
 .claude*
 models/*
+*.zip
+submission

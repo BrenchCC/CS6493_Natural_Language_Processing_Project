@@ -1,3 +1,4 @@
+import csv
 import html
 import json
 import logging
@@ -17,6 +18,7 @@ logger = logging.getLogger(__name__)
 
 OUT_DIR = Path(__file__).resolve().parent
 ROOT_DIR = OUT_DIR.parents[1]
+SUMMARY_DIR = ROOT_DIR / "results" / "summaries"
 PPTX_NAME = "CS6493_Math_Reasoning_Presentation.pptx"
 
 COLORS = {
@@ -38,54 +40,262 @@ COLORS = {
     "soft_green": "EAF7EF",
 }
 
-METHODS = [
-    "CoT zero",
-    "CoT few",
-    "Self-Refine",
-    "Self-Cons.",
-    "Plan-Solve",
-    "TIR",
+METHOD_ORDER = [
+    "cot_zero",
+    "cot_few_shot",
+    "self_refine",
+    "self_consistency",
+    "plan_solve",
+    "tir",
 ]
 
+METHOD_LABELS = {
+    "cot_zero": "CoT zero",
+    "cot_few_shot": "CoT few",
+    "self_refine": "Self-Refine",
+    "self_consistency": "Self-Cons.",
+    "plan_solve": "Plan-Solve",
+    "tir": "TIR",
+}
+
+MODEL_ORDER = [
+    "DeepSeek",
+    "Qwen",
+]
+
+DATASET_ORDER = [
+    "math500",
+    "gsm8k",
+    "aime2024",
+]
+
+DATASET_LABELS = {
+    "math500": "MATH-500",
+    "gsm8k": "GSM8K",
+    "aime2024": "AIME 2024",
+}
+
+
+def normalize_model_name(model_alias):
+    """Map model aliases from CSV summaries into short slide labels.
+
+    Args:
+        model_alias: Raw model alias string from the score summary CSV.
+
+    Returns:
+        str: Short display name used in slides.
+    """
+    if "DeepSeek" in model_alias:
+        return "DeepSeek"
+    if "Qwen" in model_alias:
+        return "Qwen"
+    return model_alias
+
+
+def load_score_rows(path):
+    """Load and normalize score summary rows from a CSV file.
+
+    Args:
+        path: Path to a summary CSV file.
+
+    Returns:
+        list: Normalized row dictionaries with parsed numeric fields.
+    """
+    float_fields = {
+        "accuracy",
+        "avg_response_length_tokens",
+        "avg_total_response_length_tokens",
+        "joint_score",
+        "mean_efficiency_on_correct",
+        "mean_length_factor_on_correct",
+        "mean_answer_factor_on_correct",
+        "mean_reflection_factor_on_correct",
+    }
+    rows = []
+    with path.open(encoding = "utf-8") as handle:
+        reader = csv.DictReader(handle)
+        for row in reader:
+            normalized = dict(row)
+            normalized["sample_count"] = int(row["sample_count"])
+            normalized["correct_count"] = int(row["correct_count"])
+            normalized["total_count"] = int(row["total_count"])
+            normalized["model_display"] = normalize_model_name(row["model_alias"])
+            normalized["method_label"] = METHOD_LABELS[row["method_name"]]
+            normalized["dataset_label"] = DATASET_LABELS.get(row["dataset_name"], row["dataset_name"])
+            for field in float_fields:
+                normalized[field] = float(row[field])
+            rows.append(normalized)
+    return rows
+
+
+OVERALL_ROWS = load_score_rows(SUMMARY_DIR / "report_selected_overall_scores.csv")
+DATASET_ROWS = load_score_rows(SUMMARY_DIR / "report_selected_dataset_scores.csv")
+
+OVERALL_LOOKUP = {
+    (row["model_display"], row["method_name"]): row
+    for row in OVERALL_ROWS
+}
+
+DATASET_LOOKUP = {
+    (row["model_display"], row["dataset_name"], row["method_name"]): row
+    for row in DATASET_ROWS
+}
+
+METHODS = [METHOD_LABELS[method_name] for method_name in METHOD_ORDER]
+
 JOINT_DATA = {
-    "DeepSeek": [
-        0.5112,
-        0.4996,
-        0.5766,
-        0.5214,
-        0.6955,
-        0.7140,
-    ],
-    "Qwen": [
-        0.5176,
-        0.4604,
-        0.4726,
-        0.4789,
-        0.6570,
-        0.6681,
-    ],
+    model_name: [
+        OVERALL_LOOKUP[(model_name, method_name)]["joint_score"]
+        for method_name in METHOD_ORDER
+    ]
+    for model_name in MODEL_ORDER
 }
 
 FACTOR_DATA = [
     {
         "name": "Answer factor",
-        "short": "Detects repeated final-answer declarations and long continuation after an answer cue appears.",
-        "formula": "answer_i = count_i x tail_i",
+        "short": "A_i counts answer cues such as boxed{} or “final answer”. The factor penalizes repeated declarations and long continuation after the first answer cue.",
+        "formula_tex": r"a_i = \mathrm{count}_i \cdot \mathrm{tail}_i",
+        "formula_ppt": "a_i = count_i · tail_i",
         "color": "blue",
     },
     {
         "name": "Length factor",
-        "short": "Penalizes only excessive total generated tokens, including hidden intermediate stages.",
-        "formula": "length_i = exp(-max(0,L_i-1024)/512)",
+        "short": "L_i is the total generated token count over all stages, including plans, critiques, sampled paths, and tool traces. Only over-budget generation is penalized.",
+        "formula_tex": r"\ell_i = \exp\left(-\frac{\max(0, L_i - L_{\mathrm{ref}})}{\tau_L}\right)",
+        "formula_ppt": "ℓ_i = exp(-max(0, L_i - L_ref) / τ_L)",
         "color": "teal",
     },
     {
         "name": "Reflection factor",
-        "short": "Flags repeated wait/check/verify/rethink cues that suggest unstable reasoning.",
-        "formula": "reflection_i = exp(-max(0,F_i-1)/2)",
+        "short": "F_i counts wait/check/verify/rethink cues. Reflection beyond the first cue is treated as unstable self-correction rather than useful structure.",
+        "formula_tex": r"r_i = \exp\left(-\frac{\max(0, F_i - F_{\mathrm{ref}})}{\tau_F}\right)",
+        "formula_ppt": "r_i = exp(-max(0, F_i - F_ref) / τ_F)",
         "color": "amber",
     },
 ]
+
+
+def build_factor_discussion_cards():
+    """Build method-level factor discussion cards from overall summary data.
+
+    Returns:
+        list: Card dictionaries for the factor discussion slide.
+    """
+    sc_deepseek = OVERALL_LOOKUP[("DeepSeek", "self_consistency")]
+    sc_qwen = OVERALL_LOOKUP[("Qwen", "self_consistency")]
+    plan_deepseek = OVERALL_LOOKUP[("DeepSeek", "plan_solve")]
+    plan_qwen = OVERALL_LOOKUP[("Qwen", "plan_solve")]
+    tir_deepseek = OVERALL_LOOKUP[("DeepSeek", "tir")]
+    tir_qwen = OVERALL_LOOKUP[("Qwen", "tir")]
+    return [
+        {
+            "title": "Self-Consistency buys accuracy with hidden budget",
+            "body": (
+                f"DeepSeek length factor drops to {sc_deepseek['mean_length_factor_on_correct']:.3f}; "
+                f"Qwen still falls to {sc_qwen['mean_length_factor_on_correct']:.3f}. "
+                "Five-path voting helps correctness, but the joint score exposes the trajectory cost."
+            ),
+            "color": "amber",
+        },
+        {
+            "title": "Plan-and-Solve improves by cleaner decomposition",
+            "body": (
+                f"Reflection stays near one on both models "
+                f"({plan_deepseek['mean_reflection_factor_on_correct']:.3f} / "
+                f"{plan_qwen['mean_reflection_factor_on_correct']:.3f}). "
+                "The gain comes from better early planning rather than extra self-check loops."
+            ),
+            "color": "blue",
+        },
+        {
+            "title": "TIR is strongest when execution errors matter",
+            "body": (
+                f"It reaches J = {tir_deepseek['joint_score']:.3f} on DeepSeek and "
+                f"J = {tir_qwen['joint_score']:.3f} on Qwen while keeping length factors at "
+                f"{tir_deepseek['mean_length_factor_on_correct']:.3f} and "
+                f"{tir_qwen['mean_length_factor_on_correct']:.3f}. "
+                "Tool use improves execution without collapsing into runaway reasoning."
+            ),
+            "color": "green",
+        },
+    ]
+
+
+def build_model_discussion_cards():
+    """Build backbone-level interpretation cards from overall and dataset results.
+
+    Returns:
+        list: Card dictionaries for the model discussion slide.
+    """
+    cot_deepseek = OVERALL_LOOKUP[("DeepSeek", "cot_zero")]
+    cot_qwen = OVERALL_LOOKUP[("Qwen", "cot_zero")]
+    plan_deepseek = OVERALL_LOOKUP[("DeepSeek", "plan_solve")]
+    plan_qwen = OVERALL_LOOKUP[("Qwen", "plan_solve")]
+    tir_deepseek = OVERALL_LOOKUP[("DeepSeek", "tir")]
+    tir_qwen = OVERALL_LOOKUP[("Qwen", "tir")]
+    aime_tir_deepseek = DATASET_LOOKUP[("DeepSeek", "aime2024", "tir")]
+    aime_tir_qwen = DATASET_LOOKUP[("Qwen", "aime2024", "tir")]
+    return [
+        {
+            "title": "Both backbones benefit from explicit structure",
+            "body": (
+                f"Plan-and-Solve adds {plan_deepseek['joint_score'] - cot_deepseek['joint_score']:+.3f} joint "
+                f"over CoT zero on DeepSeek and {plan_qwen['joint_score'] - cot_qwen['joint_score']:+.3f} on Qwen. "
+                "The decomposition stage helps even without external tools."
+            ),
+            "color": "blue",
+        },
+        {
+            "title": "A stronger reasoning prior converts tools into bigger hard-split gains",
+            "body": (
+                f"On AIME 2024, TIR reaches {aime_tir_deepseek['joint_score']:.3f} on DeepSeek "
+                f"versus {aime_tir_qwen['joint_score']:.3f} on Qwen. "
+                "The hardest split is where backbone quality most clearly limits the return from agentic control."
+            ),
+            "color": "teal",
+        },
+        {
+            "title": "Interpretation: structure helps both, but not for the same reason",
+            "body": (
+                f"DeepSeek gets the larger absolute gain with TIR "
+                f"({tir_deepseek['joint_score'] - cot_deepseek['joint_score']:+.3f}), "
+                f"while Qwen keeps a tighter efficiency profile "
+                f"({tir_qwen['mean_length_factor_on_correct']:.3f}). "
+                "One model converts extra structure into harder-problem accuracy; the other benefits more from controlled execution."
+            ),
+            "color": "amber",
+        },
+    ]
+
+
+def build_dataset_matrix_panels():
+    """Build side-by-side dataset joint-score matrices for both models.
+
+    Returns:
+        list: Panel dictionaries for the dataset matrix slide.
+    """
+    panels = []
+    for model_name, accent in [("DeepSeek", "blue"), ("Qwen", "teal")]:
+        rows = []
+        for method_name in METHOD_ORDER:
+            rows.append(
+                {
+                    "method": METHOD_LABELS[method_name],
+                    "scores": [
+                        DATASET_LOOKUP[(model_name, dataset_name, method_name)]["joint_score"]
+                        for dataset_name in DATASET_ORDER
+                    ],
+                }
+            )
+        panels.append(
+            {
+                "title": f"{model_name} joint score by dataset",
+                "accent": accent,
+                "rows": rows,
+            }
+        )
+    return panels
 
 SLIDES = [
     {
@@ -411,8 +621,8 @@ SLIDES = [
     {
         "id": 9,
         "kicker": "Evaluation Motivation",
-        "title": "Why a single metric view is misleading",
-        "subtitle": "The project requirement mentions accuracy and response length; multi-stage methods make that separation tricky.",
+        "title": "Single metrics hide different failure modes",
+        "subtitle": "Once methods become multi-stage, accuracy and length stop telling the same story.",
         "layout": "cards",
         "cards": [
             {
@@ -433,132 +643,109 @@ SLIDES = [
         ],
         "takeaway": "The metric is designed to be accuracy-first, trajectory-aware, and interpretable during error analysis.",
         "notes": [
-            "The metric has three design highlights. The first is the correctness gate. A wrong answer receives zero, so the score never rewards a short but wrong response. This keeps the metric faithful to the mathematical task.",
-            "The second highlight is full trajectory accounting. Plans, critiques, repeated samples, and tool transcripts are counted as generated reasoning cost. The third highlight is interpretability. Instead of one opaque penalty, the score decomposes behavior into answer, length, and reflection factors, which makes error analysis more meaningful.",
+            "This slide explains why I do not want to present raw accuracy, final answer length, or total generation length as isolated scoreboards. Accuracy alone hides hidden budget. Final length hides the cost of multi-stage trajectories. Total length alone can over-penalize correct but slightly verbose reasoning.",
+            "The joint score is therefore a compromise with a clear priority order. Correctness decides whether the sample deserves credit at all. Full trajectory accounting makes multi-stage methods comparable. Then answer, length, and reflection factors explain why two correct methods still differ in quality.",
         ],
     },
     {
         "id": 10,
         "kicker": "Designed Score Formula",
         "title": "Correctness gates the score; efficiency adjusts the remaining credit",
-        "subtitle": "Incorrect answers still receive zero, so short wrong answers cannot outrank long correct ones.",
+        "subtitle": "The formula itself is part of the contribution, so it is rendered explicitly instead of being described only in prose.",
         "layout": "formula",
         "formula": [
-            "efficiency_i = answer_i^0.5 x length_i^0.3 x reflection_i^0.2",
-            "score_i = c_i x (0.6 + 0.4 x efficiency_i)",
-            "joint score = mean(score_i)",
+            {
+                "tex": r"\eta_i = a_i^{0.5}\,\ell_i^{0.3}\,r_i^{0.2}",
+                "ppt": "η_i = a_i^0.5 · ℓ_i^0.3 · r_i^0.2",
+                "desc": "Efficiency is a weighted geometric mean of answer stability, length economy, and reflection control.",
+            },
+            {
+                "tex": r"s_i = c_i\left(0.6 + 0.4\eta_i\right), \quad c_i \in \{0,1\}",
+                "ppt": "s_i = c_i(0.6 + 0.4η_i),  c_i ∈ {0, 1}",
+                "desc": "Correctness gates the score: incorrect predictions receive zero regardless of brevity.",
+            },
+            {
+                "tex": r"J = \frac{1}{N}\sum_{i = 1}^{N} s_i",
+                "ppt": "J = (1 / N) · Σ_i=1^N s_i",
+                "desc": "The reported joint score averages sample-level scores over a model-method run.",
+            },
+        ],
+        "definitions": [
+            {"tex": r"A_i", "ppt": "A_i", "desc": "answer-cue count"},
+            {"tex": r"R_i", "ppt": "R_i", "desc": "tail ratio after first cue"},
+            {"tex": r"L_i", "ppt": "L_i", "desc": "total generated tokens"},
+            {"tex": r"F_i", "ppt": "F_i", "desc": "reflection-cue count"},
+            {"tex": r"L_{\mathrm{ref}} = 1024,\ \tau_L = 512", "ppt": "L_ref = 1024, τ_L = 512", "desc": "length reference"},
+            {"tex": r"F_{\mathrm{ref}} = 1,\ \tau_F = 2", "ppt": "F_ref = 1, τ_F = 2", "desc": "reflection reference"},
         ],
         "takeaway": "The 0.6 floor keeps correctness dominant, while the 0.4 modifier separates correct samples by behavior.",
         "notes": [
-            "This slide is the core metric design. The efficiency term combines three factors: answer behavior, length behavior, and reflection behavior. The exponents make answer stability the largest behavior component, followed by length and reflection.",
-            "The sample score is correctness-gated. If the answer is wrong, the score is zero. If the answer is correct, it receives a base credit of 0.6 plus up to 0.4 more depending on efficiency. This means the score remains accuracy-first. A short wrong answer cannot beat a long correct answer, but among correct answers, the score still prefers concise and stable reasoning.",
+            "This is the core scoring slide. I make the formula explicit because the evaluation design is not just a reporting afterthought; it is part of the experiment. The exponents tell the audience that answer stability is the strongest behavior term, followed by length and then reflection.",
+            "The second equation is the key design decision. Correctness gates the entire score, and efficiency only adjusts the remaining forty percent. That makes the metric conservative: a short wrong answer still receives zero, but among correct samples we can distinguish cleaner reasoning from wasteful reasoning.",
         ],
     },
     {
         "id": 11,
         "kicker": "Factor Decomposition",
-        "title": "The factors explain why two correct methods behave differently",
-        "subtitle": "The scalar joint score ranks methods; the factor view explains the ranking.",
+        "title": "Factor and variable design make the score interpretable",
+        "subtitle": "Each penalty is tied to a concrete observable variable instead of an opaque heuristic.",
         "layout": "factors",
         "cards": FACTOR_DATA,
         "takeaway": "Low length, answer, or reflection factors point to different error-analysis stories.",
         "notes": [
-            "The joint score is useful for ranking, but it should not be interpreted alone. The factor decomposition tells us why a method received its score. The answer factor catches repeated final-answer signals or long continuation after the answer appears. The length factor catches hidden generation cost. The reflection factor catches excessive checking or hesitation language.",
-            "This is important when methods look similar from the outside. For example, two methods can both solve a problem, but one may solve it with a concise final answer while the other repeats final-answer cues or keeps saying it needs to verify. The factor view turns that qualitative behavior into a diagnostic signal.",
+            "The important point here is that each factor is linked to a variable I can actually observe in the trajectory. A_i and R_i describe answer behavior. L_i describes total budget across all generated stages. F_i describes unstable reflection language such as wait, check, or verify.",
+            "That design makes the score explainable. If a method loses score, I can say whether it is because it over-generated, repeated final-answer cues, or kept looping through self-check language. This is much more useful in discussion than saying the method simply had a lower scalar score.",
         ],
     },
     {
         "id": 12,
         "kicker": "Designed Score View",
         "title": "Joint score comparison highlights the proposed methods",
-        "subtitle": "Only the custom accuracy-first joint score is used as the main result view.",
+        "subtitle": "The result slide uses only the custom accuracy-first joint score, not raw accuracy or raw length charts.",
         "layout": "joint_chart",
         "takeaway": "Plan-and-Solve leads prompt-only methods; TIR is strongest when tool use is allowed.",
         "notes": [
-            "This is the main result slide, and it intentionally uses only the designed joint score. I am not presenting standalone accuracy or standalone length as the result view, because the whole argument is that those single views are incomplete.",
-            "The pattern is clear. For both models, Plan-and-Solve rises above the baseline prompt-only methods under the joint score. TIR reaches the strongest joint score when tool use is allowed. The interpretation is not simply that TIR is the best prompt. The interpretation is that external computation plus observation can improve small-model math solving, but it changes the experimental setting.",
+            "This is the main result view, and it intentionally uses only joint score. The audience should read the chart as a ranking under my full evaluation design, not as a replacement for the underlying correctness task.",
+            "The result pattern is stable across both models. Plan-and-Solve is the strongest prompt-only method. TIR is best overall when tool use is allowed. The substantive interpretation is that structure helps small models, and action-observation loops help even more when execution errors are the bottleneck.",
         ],
     },
     {
         "id": 13,
-        "kicker": "Method-Level Finding",
-        "title": "Plan-and-Solve is the safest main contribution",
-        "subtitle": "It improves the designed score while staying inside the prompt-only comparison setting.",
+        "kicker": "Factor-Based Discussion",
+        "title": "Factor diagnostics separate efficient gains from expensive gains",
+        "subtitle": "Methods can improve correctness for very different behavioral reasons; the factor view reveals which one.",
         "layout": "cards",
-        "cards": [
-            {
-                "title": "Best prompt-only story",
-                "body": "It is easy to explain: plan before solving, then answer clearly.",
-                "color": "blue",
-            },
-            {
-                "title": "Compute-aware",
-                "body": "It avoids the five-path sampling budget of Self-Consistency.",
-                "color": "teal",
-            },
-            {
-                "title": "Empirical signal",
-                "body": "It receives higher joint scores than all four assignment-aligned baselines.",
-                "color": "green",
-            },
-        ],
-        "takeaway": "Plan-and-Solve is the primary proposed prompt-only method for the final presentation.",
+        "cards": build_factor_discussion_cards(),
+        "takeaway": "The factor view explains whether a gain comes from cleaner structure, more budget, or better execution.",
         "notes": [
-            "The safest methodological takeaway is Plan-and-Solve. It is fair, simple, and aligned with how humans often approach math problems: identify the steps first, then carry them out. That makes it easy to explain in a classroom presentation.",
-            "It also works well under the designed score because it improves the result without hiding a large sampling budget. Compared with Self-Consistency, it does not multiply trajectory count. Compared with Self-Refine, it adds structure before the model commits to a full solution. This makes it the main contribution I would emphasize in the oral presentation.",
+            "This slide is where the factor table becomes an argument rather than a definition. Self-Consistency is a good example: it may improve correctness, but its length factor collapses because five full trajectories are being paid for. The joint score makes that trade-off visible.",
+            "Plan-and-Solve and TIR tell a different story. Plan-and-Solve looks strong because planning reduces unstable reflection while staying prompt-only. TIR looks strong because it improves execution reliability while keeping the trajectory more controlled than multi-sample voting.",
         ],
     },
     {
         "id": 14,
-        "kicker": "Agentic Finding",
-        "title": "TIR is strong because it changes the problem-solving loop",
-        "subtitle": "The caveat is not a weakness; it is the research point.",
-        "layout": "comparison",
-        "cards": [
-            {
-                "title": "Not prompt-only",
-                "body": "The model receives a Python observation, so it is not directly comparable with static prompts.",
-                "color": "red",
-            },
-            {
-                "title": "Agentic value",
-                "body": "The loop externalizes arithmetic and symbolic execution, then feeds evidence back into reasoning.",
-                "color": "teal",
-            },
-        ],
-        "takeaway": "TIR points beyond static prompting toward small solver agents with reliable tools.",
+        "kicker": "Model-Level Discussion",
+        "title": "Backbone strength changes how much structure can be exploited",
+        "subtitle": "Method gains are real on both models, but the stronger reasoning prior converts them more effectively on hard cases.",
+        "layout": "cards",
+        "cards": build_model_discussion_cards(),
+        "takeaway": "Structure helps both backbones; stronger priors turn it into bigger hard-split gains.",
         "notes": [
-            "TIR should be framed with a clear caveat. It is not prompt-only because it gives the model a Python executor. That means its score is not a direct apples-to-apples prompt comparison.",
-            "But this caveat is also the main research value. Many math mistakes in small models are not philosophical reasoning failures; they are arithmetic or symbolic execution failures. A narrow tool loop can reduce exactly those errors. This leads naturally to an agentic future direction: a small reasoning model paired with a reliable calculator, verifier, or symbolic tool can become a more capable solver.",
+            "Here I shift from method comparison to backbone interpretation. The key point is that both models benefit from structure, which means the prompt idea is not tied to one particular backbone. But the gain profile is not identical.",
+            "DeepSeek converts extra structure and tool access into larger gains on the hardest split, especially AIME. Qwen also improves, but its ceiling is lower. So the takeaway is not only that prompting matters, but that a stronger reasoning prior can better exploit the same prompting or agentic scaffold.",
         ],
     },
     {
         "id": 15,
         "kicker": "Dataset-Level Discussion",
-        "title": "The three datasets play different diagnostic roles",
-        "subtitle": "The dataset breakdown is interpreted qualitatively, not as a standalone metric slide.",
-        "layout": "dataset_cards",
-        "cards": [
-            {
-                "title": "GSM8K",
-                "body": "Grade-school word problems; decomposition and controlled execution help most directly.",
-                "color": "green",
-            },
-            {
-                "title": "MATH-500",
-                "body": "Competition-style coverage; useful for broader mathematical reasoning diversity.",
-                "color": "blue",
-            },
-            {
-                "title": "AIME 2024",
-                "body": "Hard stress test; exposes whether gains transfer beyond easier arithmetic structure.",
-                "color": "amber",
-            },
-        ],
-        "takeaway": "AIME is where superficial gains are most likely to break; GSM8K is where structure helps most visibly.",
+        "title": "Dataset joint-score matrix shows where the gains really transfer",
+        "subtitle": "GSM8K reveals decomposition gains early; AIME 2024 checks whether those gains survive on harder symbolic reasoning.",
+        "layout": "dataset_matrix",
+        "panels": build_dataset_matrix_panels(),
+        "takeaway": "GSM8K responds fastest to structure; AIME remains the transfer stress test for both backbones.",
         "notes": [
-            "The dataset breakdown should be used as interpretation, not as a separate scoreboard. GSM8K is generally the easiest because many problems are elementary multi-step arithmetic. Structured prompting and tools are naturally helpful there.",
-            "MATH-500 is broader and gives a competition-style coverage signal. AIME 2024 is the stress test. It requires deeper symbolic insight and is less forgiving when a method only improves answer style. This is why the report treats AIME as a transfer check: a method that looks strong on GSM8K may still struggle on harder mathematical reasoning.",
+            "This matrix is still using only joint score, so it stays inside the evaluation design of the project. The purpose is not to create another scoreboard, but to show where a method’s gains actually transfer across data regimes.",
+            "GSM8K is where decomposition and tools help most predictably, because many questions are arithmetic and multi-step. MATH-500 is broader and more mixed. AIME 2024 is the hardest test: if a method only improves answer style or easy arithmetic, its joint score will collapse there first.",
         ],
     },
     {
@@ -569,59 +756,59 @@ SLIDES = [
         "layout": "literature",
         "cards": [
             {
-                "title": "Prompting",
-                "body": "CoT, Self-Consistency, Self-Refine, and Plan-and-Solve motivate structured reasoning paths.",
+                "title": "Prompting lineage",
+                "body": "Wei et al. (2022), Wang et al. (2022), Madaan et al. (2024), and Wang et al. (2023) motivate elicitation, sampling, critique, and explicit planning as distinct reasoning scaffolds.",
                 "color": "blue",
             },
             {
-                "title": "Tool use",
-                "body": "ToRA motivates interleaving natural-language reasoning with executable computation.",
+                "title": "Tool-grounded solving",
+                "body": "ToRA motivates the idea that reasoning can call reliable computation, observe the result, and continue. My TIR slide is a prompt-level, small-scale version of that idea.",
                 "color": "teal",
             },
             {
-                "title": "Efficiency",
-                "body": "NoWait and Dynamic Early Exit motivate tracking reflection and excessive reasoning cost.",
+                "title": "Efficiency-aware diagnosis",
+                "body": "NoWait and Dynamic Early Exit inspire the metric side: reflection tokens, overlong reasoning, and answer-aware stopping should be measured instead of ignored.",
                 "color": "amber",
             },
         ],
         "takeaway": "The project adapts these ideas into a lightweight prompt-level experimental pipeline.",
         "notes": [
-            "The related work connects to three parts of the project. First, CoT, Self-Consistency, Self-Refine, and Plan-and-Solve motivate the prompt methods. Second, ToRA motivates the idea of tool-integrated mathematical reasoning, although my TIR implementation is only a prompt-level loop and not a trained ToRA-style model.",
-            "Third, recent efficiency-oriented work motivates the behavior factors. NoWait studies the cost of explicit reflection tokens, and Dynamic Early Exit studies answer-aware truncation for long reasoning sequences. I do not claim to implement those decoding methods. I use them as motivation for measuring length, answer behavior, and reflection behavior.",
+            "This slide clarifies that the project is not claiming to reproduce full prior systems. Instead, it borrows the key ideas that matter for this classroom experiment: elicited reasoning, multi-path robustness, pre-solution planning, tool-grounded execution, and efficiency-aware analysis.",
+            "That framing matters because it ties each design choice back to a paper idea. Plan-and-Solve is not just a prompt trick; it is motivated by explicit task decomposition. TIR is not just longer prompting; it is motivated by tool-grounded reasoning. The factorized score is not arbitrary; it is motivated by recent work on thinking-token cost and stopping decisions.",
         ],
     },
     {
         "id": 17,
         "kicker": "Future Work",
         "title": "From static prompts to adaptive solver agents",
-        "subtitle": "The next step is to let the system decide when to plan, sample, verify, or call tools.",
+        "subtitle": "The next step is not “always think longer”, but “decide which reasoning mode is worth paying for”.",
         "layout": "roadmap",
         "steps": [
             {
-                "title": "Prompt controller",
-                "body": "Train or rule-design a router that chooses CoT, Plan-and-Solve, or tool use by problem type.",
+                "title": "Harness prompt",
+                "body": "Standardize classify-plan-solve-verify slots so later agents read and act on the same reasoning scaffold.",
                 "color": "blue",
             },
             {
-                "title": "ReAct-style loop",
-                "body": "Let the solver alternate between reasoning, Python actions, observations, and finalization.",
+                "title": "Problem router",
+                "body": "Choose CoT, Plan-and-Solve, or TIR according to arithmetic load, symbolic depth, and uncertainty.",
                 "color": "teal",
             },
             {
-                "title": "Verifier agent",
-                "body": "Run a second pass to check answer consistency, detect repeated cues, and request targeted fixes.",
+                "title": "ReAct math loop",
+                "body": "Let the solver reason, call Python, observe, and revise only when execution evidence is actually needed.",
                 "color": "amber",
             },
             {
-                "title": "Adaptive stopping",
-                "body": "Stop generation when the answer is stable; continue only when uncertainty or contradiction is detected.",
+                "title": "Verifier + stop rule",
+                "body": "Check final-answer stability, repeated cues, and contradiction; then stop early or request one targeted repair.",
                 "color": "green",
             },
         ],
         "takeaway": "A practical next experiment is a routed solver: classify the problem, choose the reasoning mode, verify, then stop early when stable.",
         "notes": [
-            "The future work should be concrete. I would start with a routed solver. The first module classifies the problem type and uncertainty. Easy arithmetic word problems may use concise CoT. Problems with many dependencies may use Plan-and-Solve. Problems with heavy calculation may enter the TIR loop.",
-            "Then I would add a verifier agent. It checks whether the final answer is stable, whether the answer signal is repeated, and whether the reasoning contradicts itself. If the answer is stable, adaptive stopping ends generation early. If not, the system requests a targeted revision or tool call. This is the agentic direction: selective control rather than simply asking the model to think longer.",
+            "The future-work direction is intentionally agentic, but still grounded in this project. A harness prompt would give every method a shared scaffold with slots for classification, planning, solving, verification, and stopping. That makes later control easier.",
+            "Then a router decides whether the cheapest sufficient mode is plain CoT, Plan-and-Solve, or a TIR-style loop. A verifier agent checks final-answer stability and contradiction. The system stops early when the answer is stable and only pays for more reasoning when the evidence says it should.",
         ],
     },
     {
@@ -633,31 +820,56 @@ SLIDES = [
         "cards": [
             {
                 "title": "1",
-                "body": "Plan-and-Solve is the strongest prompt-only story for this project.",
+                "body": "Plan-and-Solve is the cleanest main contribution because it improves joint score without leaving the prompt-only setting.",
                 "color": "blue",
             },
             {
                 "title": "2",
-                "body": "TIR is best framed as an agentic extension, not a fair prompt-only baseline.",
+                "body": "TIR is best read as an agentic extension: reason, act, observe, and continue with a narrow mathematical tool boundary.",
                 "color": "teal",
             },
             {
                 "title": "3",
-                "body": "The joint score keeps correctness dominant while making hidden cost visible.",
+                "body": "The joint score keeps correctness dominant while exposing hidden budget, unstable answer cues, and excessive reflection.",
                 "color": "amber",
             },
         ],
         "takeaway": "Q&A",
         "notes": [
-            "The closing message is simple. First, Plan-and-Solve is the main prompt-only contribution because it is fair, effective, and easy to explain. Second, TIR is a strong agentic extension, but it must be framed as tool-augmented because Python execution changes the setting.",
-            "Third, the custom joint score is not meant to replace correctness. It keeps correctness dominant while making hidden generation cost and unstable answer behavior visible. The broader lesson is that when we change the reasoning process, we also need to change how we evaluate and explain that process. That is the main takeaway I want the audience to remember.",
+            "The closing message has three parts. First, Plan-and-Solve is the strongest prompt-only story because it is fair, structured, and empirically strong under the designed score. Second, TIR points toward agentic math solvers rather than just longer prompts.",
+            "Third, metric design and prompt design should be discussed together. Once a method uses planning, sampling, refinement, or tools, evaluation has to say what budget it counts and what behavior it rewards. That is the methodological takeaway I want the audience to remember.",
         ],
     },
 ]
 
 
+EXPLANATIONS = {
+    "Mathematical Reasoning in Small Open-Weight LLMs": "This presentation studies mathematical reasoning as a complete solving behavior. The main contribution is a fair comparison of prompt-only designs and a behavior-aware score that makes hidden reasoning cost explicit.",
+    "Can structured prompting improve math reasoning under limited compute?": "The research question is framed around small open-weight models, where each extra generation stage matters. The goal is to improve correctness while keeping the reasoning process observable and comparable.",
+    "A controlled small-model benchmark across three math splits": "The setup uses fixed sampled subsets to make the experiment reproducible. This supports relative method comparison, while the report still treats exact numbers as sample-dependent reference values.",
+    "The experiment records the full reasoning trajectory, not only the final answer": "For multi-stage methods, the intermediate plan, critique, voted samples, and tool transcript are part of the method. Counting them avoids underestimating the real computational behavior.",
+    "Three intervention levels: prompt context, inference structure, and tool loop": "The taxonomy separates methods by what they change: the prompt text, the inference trajectory, or the system boundary. This prevents treating tool-augmented gains as ordinary prompt-only gains.",
+    "Single-turn, multi-sample, multi-turn, and tool-loop methods have different cost surfaces": "A single response, five sampled responses, staged dialogue, and action-observation loop all expose different costs. The evaluation therefore uses total generated length rather than only final answer length.",
+    "Small reasoning models fail in more than one way": "The prompt design targets failure modes beyond final wrongness: missing early steps, excessive derivation, and unstable answer formatting. These behaviors motivate both Plan-and-Solve and the factorized metric.",
+    "Each method changes a different part of the reasoning process": "The six methods represent distinct mechanisms: instruction, demonstration, self-critique, sampling, pre-solution planning, and external computation. This makes method interpretation more important than just ranking.",
+    "Plan-and-Solve moves structure before execution": "Plan-and-Solve is the main prompt-only innovation because it encourages problem decomposition before arithmetic execution. It is easy to compare fairly against CoT and refinement baselines.",
+    "TIR turns math solving into a compact action-observation loop": "TIR is framed as a small agentic extension. Its value is not merely higher score, but the ability to externalize exact computation and feed the observation back into reasoning.",
+    "Single metrics hide different failure modes": "Accuracy, final length, and total length each miss part of the story when used alone. The designed metric keeps accuracy central while exposing the cost and stability of the reasoning path.",
+    "Correctness gates the score; efficiency adjusts the remaining credit": "The formula is deliberately conservative: correctness is a prerequisite, then behavior factors adjust only the remaining credit. This protects against rewarding short but wrong outputs.",
+    "Factor and variable design make the score interpretable": "The factor decomposition makes the score interpretable. A low score can be traced to over-generation, repeated answer cues, or excessive reflection rather than treated as an opaque penalty.",
+    "Joint score comparison highlights the proposed methods": "The result view focuses on the designed joint score because it is the evaluation contribution of the project. Plan-and-Solve leads prompt-only methods, while TIR shows the potential of tool-augmented solving.",
+    "Factor diagnostics separate efficient gains from expensive gains": "The factor view reveals whether a score gain comes from cleaner decomposition, better execution, or simply paying for more hidden generation budget.",
+    "Backbone strength changes how much structure can be exploited": "Method gains depend on model quality as well as prompt design. The stronger backbone converts the same structured scaffold into larger hard-split gains.",
+    "Dataset joint-score matrix shows where the gains really transfer": "GSM8K reveals early decomposition gains, MATH-500 broadens coverage, and AIME tests whether the gain survives under harder symbolic reasoning.",
+    "The design borrows ideas from prompting, tool use, and reasoning efficiency": "The related work motivates the design choices: CoT-style reasoning paths, ToRA-style tool integration, and recent efficiency work on reflection and overlong reasoning.",
+    "From static prompts to adaptive solver agents": "A concrete next step is an adaptive solver that routes problems to the cheapest sufficient reasoning mode, verifies answer stability, and stops once the solution is reliable.",
+    "Prompt design and metric design must be discussed together": "The final message is methodological: once methods use planning, sampling, refinement, or tools, evaluation must specify what behavior it rewards and what cost it counts.",
+}
+
+
 for slide_index, slide_data in enumerate(SLIDES, start = 1):
     slide_data["id"] = slide_index
+    slide_data["explanation"] = EXPLANATIONS.get(slide_data["title"], slide_data["takeaway"])
 
 
 def parse_args():
@@ -720,6 +932,38 @@ def escape_text(text):
     return html.escape(str(text), quote = True)
 
 
+def standard_formula(text):
+    """Convert internal ASCII formula notation to presentation notation.
+
+    Args:
+        text: Formula text using ASCII-friendly names.
+
+    Returns:
+        str: Formula text with mathematical symbols for slides.
+    """
+    replacements = {
+        "eta_i": "ηᵢ",
+        "a_i": "aᵢ",
+        "ell_i": "ℓᵢ",
+        "r_i": "rᵢ",
+        "s_i": "sᵢ",
+        "c_i": "cᵢ",
+        "L_i": "Lᵢ",
+        "F_i": "Fᵢ",
+        "L_ref": "L_ref",
+        "F_ref": "F_ref",
+        "tau_L": "τ_L",
+        "tau_F": "τ_F",
+        "sum_{i=1}^{N}": "∑ᵢ₌₁ᴺ",
+        " in ": " ∈ ",
+        " x ": " · ",
+    }
+    result = str(text)
+    for old, new in replacements.items():
+        result = result.replace(old, new)
+    return result
+
+
 def write_text(path, content):
     """Write UTF-8 text to a file.
 
@@ -756,9 +1000,16 @@ def render_card(card):
     title = card.get("title", card.get("name", ""))
     body = card.get("body", card.get("short", ""))
     formula = card.get("formula")
+    formula_tex = card.get("formula_tex")
     body_html = escape_text(body)
-    if formula:
-        body_html = f'{body_html}<br><code>{escape_text(formula)}</code>'
+    if formula_tex:
+        body_html = (
+            f'{body_html}<span class="mini-equation math-inline" data-math = "1">'
+            f'\\({escape_text(formula_tex)}\\)'
+            f'</span>'
+        )
+    elif formula:
+        body_html = f'{body_html}<span class="mini-equation">{escape_text(standard_formula(formula))}</span>'
     return (
         f'<article class="card accent-{card_color}">'
         f'<h3>{escape_text(title)}</h3>'
@@ -781,6 +1032,96 @@ def render_notes(slide):
         for paragraph in slide.get("notes", [])
     )
     return f'<aside class="notes">{paragraphs}</aside>'
+
+
+def get_explanation_meta(slide):
+    """Return a label, meta tag, and accent for the explanation module.
+
+    Args:
+        slide: Slide dictionary containing id and layout fields.
+
+    Returns:
+        tuple: (label, meta tag, accent color key)
+    """
+    by_id = {
+        2: ("Research Lens", "QUESTION", "blue"),
+        7: ("Failure Lens", "PROMPT", "amber"),
+        11: ("Metric Logic", "EVALUATION", "teal"),
+        12: ("Score Rule", "FORMULA", "blue"),
+        13: ("Factor Read", "DIAGNOSTIC", "teal"),
+        14: ("Result Read", "OVERALL", "blue"),
+        15: ("Factor Read", "DIAGNOSTIC", "green"),
+        16: ("Model Lens", "BACKBONE", "blue"),
+        17: ("Dataset Lens", "JOINT SCORE", "teal"),
+        18: ("Reference Link", "RELATED WORK", "blue"),
+        19: ("Next Move", "FUTURE", "amber"),
+        20: ("Final Takeaway", "Q&A", "green"),
+    }
+    by_layout = {
+        "cover": ("Core Claim", "PROJECT", "blue"),
+        "setup": ("Protocol Read", "SETUP", "teal"),
+        "taxonomy": ("Comparison Rule", "METHOD", "amber"),
+        "process": ("Design Lens", "PIPELINE", "blue"),
+        "method_cards": ("Method Read", "BEHAVIOR", "teal"),
+        "cards": ("Key Read", "FRAMING", "blue"),
+        "loop": ("Agentic Angle", "REASONING", "amber"),
+        "formula": ("Score Rule", "FORMULA", "blue"),
+        "factors": ("Factor Read", "DIAGNOSTIC", "teal"),
+        "joint_chart": ("Result Read", "RESULT", "blue"),
+        "comparison": ("Contrast Read", "RESULT", "amber"),
+        "dataset_cards": ("Dataset Lens", "SPLITS", "teal"),
+        "dataset_matrix": ("Dataset Lens", "JOINT SCORE", "teal"),
+        "literature": ("Reference Link", "RELATED WORK", "blue"),
+        "roadmap": ("Next Move", "FUTURE", "amber"),
+        "takeaways": ("Closing Note", "Q&A", "green"),
+    }
+    if slide["id"] in by_id:
+        return by_id[slide["id"]]
+    return by_layout.get(slide["layout"], ("Key Read", "DECK", "blue"))
+
+
+def render_explanation(slide):
+    """Render the visible academic explanation box for one slide.
+
+    Args:
+        slide: Slide dictionary containing an explanation string.
+
+    Returns:
+        str: HTML markup for the explanation box.
+    """
+    explanation = slide.get("explanation", "")
+    if not explanation:
+        return ""
+    label, meta, accent = get_explanation_meta(slide)
+    return (
+        f'<div class="explain-box accent-{accent}">'
+        f'<div class="explain-head">'
+        f'<span class="explain-tag">{escape_text(label)}</span>'
+        f'<span class="explain-meta">{escape_text(meta)}</span>'
+        f'</div>'
+        f'<p>{escape_text(explanation)}</p>'
+        f'</div>'
+    )
+
+
+def score_band(score):
+    """Map a joint-score value to a CSS band label.
+
+    Args:
+        score: Joint-score value between zero and one.
+
+    Returns:
+        str: Band label used by HTML table cells.
+    """
+    if score >= 0.75:
+        return "top"
+    if score >= 0.60:
+        return "high"
+    if score >= 0.35:
+        return "mid"
+    if score >= 0.20:
+        return "low"
+    return "risk"
 
 
 def render_joint_svg():
@@ -819,6 +1160,46 @@ def render_joint_svg():
         '</svg>'
         '</div>'
     )
+
+
+def render_dataset_matrix(slide):
+    """Render the dataset joint-score matrix for the HTML deck.
+
+    Args:
+        slide: Slide dictionary containing dataset matrix panels.
+
+    Returns:
+        str: HTML markup for the dataset matrix slide.
+    """
+    panels = []
+    headers = "".join(f"<th>{escape_text(DATASET_LABELS[name])}</th>" for name in DATASET_ORDER)
+    for panel in slide.get("panels", []):
+        body_rows = []
+        for row in panel["rows"]:
+            score_cells = "".join(
+                (
+                    f'<td class="score-cell band-{score_band(score)}">'
+                    f'{score:.3f}'
+                    f'</td>'
+                )
+                for score in row["scores"]
+            )
+            body_rows.append(
+                f'<tr>'
+                f'<th>{escape_text(row["method"])}</th>'
+                f'{score_cells}'
+                f'</tr>'
+            )
+        panels.append(
+            f'<article class="matrix-panel accent-{panel["accent"]}">'
+            f'<h3>{escape_text(panel["title"])}</h3>'
+            f'<table class="score-table">'
+            f'<thead><tr><th>Method</th>{headers}</tr></thead>'
+            f'<tbody>{"".join(body_rows)}</tbody>'
+            f'</table>'
+            f'</article>'
+        )
+    return f'<div class="dataset-matrix">{"".join(panels)}</div>'
 
 
 def render_visual(slide):
@@ -889,19 +1270,42 @@ def render_visual(slide):
             )
         return f'<div class="loop-grid">{"".join(steps)}</div>'
     if layout == "formula":
-        formulas = "".join(
-            f'<div class="formula-line">{escape_text(formula)}</div>'
-            for formula in slide.get("formula", [])
+        formulas = []
+        for formula in slide.get("formula", []):
+            equation_markup = escape_text(formula.get("ppt", formula.get("eq", "")))
+            if formula.get("tex"):
+                equation_markup = (
+                    f'<div class="equation math-display" data-math = "1">'
+                    f'\\[{escape_text(formula["tex"])}\\]'
+                    f'</div>'
+                )
+            else:
+                equation_markup = f'<div class="equation">{equation_markup}</div>'
+            formulas.append(
+                f'<div class="formula-line">'
+                f'{equation_markup}'
+                f'<p>{escape_text(formula["desc"])}</p>'
+                f'</div>'
+            )
+        definitions = "".join(
+            (
+                f'<span class="definition-pill" data-math = "1">'
+                f'\\({escape_text(item["tex"])}\\): {escape_text(item["desc"])}'
+                f'</span>'
+            )
+            for item in slide.get("definitions", [])
         )
         return (
-            f'<div class="formula-panel">{formulas}</div>'
-            f'<div class="callout">Correctness first; behavior only modifies correct samples.</div>'
+            f'<div class="formula-panel">{"".join(formulas)}</div>'
+            f'<div class="definition-row">{definitions}</div>'
         )
     if layout == "factors":
         cards = "".join(render_card(card) for card in slide.get("cards", []))
         return f'<div class="factor-grid">{cards}</div>'
     if layout == "joint_chart":
         return render_joint_svg()
+    if layout == "dataset_matrix":
+        return render_dataset_matrix(slide)
     if layout == "comparison":
         cards = "".join(render_card(card) for card in slide.get("cards", []))
         return f'<div class="compare-grid">{cards}</div>'
@@ -940,6 +1344,7 @@ def render_slide(slide, total):
         f'<section class="slide{active}" data-title="{escape_text(slide["title"])}">'
         f'{header}'
         f'{render_visual(slide)}'
+        f'{render_explanation(slide)}'
         f'<footer><span>{escape_text(slide["takeaway"])}</span>'
         f'<span class="slide-number" data-current="{slide["id"]}" data-total="{total}"></span></footer>'
         f'{render_notes(slide)}'
@@ -962,6 +1367,18 @@ def build_html():
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>CS6493 Math Reasoning Presentation</title>
 <link rel="stylesheet" href="style.css">
+<script>
+window.MathJax = {{
+  tex: {{
+    inlineMath: [['\\\\(', '\\\\)']],
+    displayMath: [['\\\\[', '\\\\]']]
+  }},
+  svg: {{
+    fontCache: 'global'
+  }}
+}};
+</script>
+<script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
 </head>
 <body>
 <div class="deck">
@@ -1215,12 +1632,14 @@ h2 {
   line-height: 1.45;
 }
 
-.card code {
+.mini-equation {
   display: block;
   margin-top: 8px;
   color: var(--blue);
-  font-family: "Courier New", Courier, monospace;
-  font-size: 13px;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 14px;
+  font-style: italic;
+  font-weight: 700;
   line-height: 1.35;
 }
 
@@ -1318,21 +1737,228 @@ h2 {
 
 .formula-panel {
   display: grid;
-  gap: 18px;
-  margin-top: 42px;
-  padding: 32px;
+  gap: 12px;
+  margin-top: 30px;
+  padding: 22px 26px;
   border: 1px solid var(--line);
   background: var(--white);
   box-shadow: var(--shadow);
 }
 
 .formula-line {
-  padding: 18px 22px;
+  padding: 14px 18px;
+  border-left: 5px solid var(--blue);
   background: var(--paper);
+}
+
+.formula-line .equation {
   color: var(--ink);
-  font-family: "Courier New", Courier, monospace;
-  font-size: 24px;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 26px;
+  font-style: italic;
   font-weight: 700;
+}
+
+.math-display .mjx-container,
+.math-inline .mjx-container,
+.definition-pill .mjx-container {
+  margin: 0 !important;
+}
+
+.math-inline .mjx-container {
+  font-size: 0.98em !important;
+}
+
+.formula-line p {
+  margin-top: 6px;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.36;
+}
+
+.definition-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.definition-row span {
+  padding: 6px 10px;
+  border: 1px solid var(--line);
+  background: var(--white);
+  color: var(--slate);
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 13px;
+  font-style: italic;
+}
+
+.dataset-matrix {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+  margin-top: 30px;
+}
+
+.matrix-panel {
+  padding: 18px 18px 14px;
+  border: 1px solid var(--line);
+  border-top-width: 5px;
+  background: var(--white);
+  box-shadow: var(--shadow);
+}
+
+.matrix-panel h3 {
+  margin-bottom: 12px;
+  color: var(--ink);
+  font-size: 20px;
+}
+
+.score-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+.score-table th,
+.score-table td {
+  padding: 8px 8px;
+  border: 1px solid var(--line);
+  text-align: center;
+  font-size: 13px;
+}
+
+.score-table thead th {
+  background: var(--paper);
+  color: var(--slate);
+  font-family: "Courier New", Courier, monospace;
+  font-weight: 700;
+}
+
+.score-table tbody th {
+  width: 28%;
+  background: var(--white);
+  color: var(--ink);
+  font-size: 12px;
+  text-align: left;
+}
+
+.score-cell {
+  font-family: "Courier New", Courier, monospace;
+  font-weight: 700;
+}
+
+.band-top {
+  background: var(--soft-green);
+  color: var(--green);
+}
+
+.band-high {
+  background: var(--soft-teal);
+  color: var(--teal);
+}
+
+.band-mid {
+  background: var(--soft-blue);
+  color: var(--blue);
+}
+
+.band-low {
+  background: var(--soft-amber);
+  color: var(--amber);
+}
+
+.band-risk {
+  background: var(--soft-red);
+  color: var(--red);
+}
+
+.explain-box {
+  position: absolute;
+  left: 76px;
+  right: 76px;
+  bottom: 70px;
+  min-height: 58px;
+  padding: 12px 16px 12px 18px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.88);
+  color: var(--slate);
+  box-shadow: 0 10px 26px rgba(24, 33, 47, 0.08);
+}
+
+.explain-box::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 5px;
+  background: var(--blue);
+}
+
+.explain-box.accent-teal::before {
+  background: var(--teal);
+}
+
+.explain-box.accent-amber::before {
+  background: var(--amber);
+}
+
+.explain-box.accent-green::before {
+  background: var(--green);
+}
+
+.explain-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 6px;
+}
+
+.explain-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: var(--soft-blue);
+  color: var(--blue);
+  font-family: "Courier New", Courier, monospace;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.explain-box.accent-teal .explain-tag {
+  background: var(--soft-teal);
+  color: var(--teal);
+}
+
+.explain-box.accent-amber .explain-tag {
+  background: var(--soft-amber);
+  color: var(--amber);
+}
+
+.explain-box.accent-green .explain-tag {
+  background: var(--soft-green);
+  color: var(--green);
+}
+
+.explain-meta {
+  color: var(--muted);
+  font-family: "Courier New", Courier, monospace;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.explain-box p {
+  margin: 0;
+  color: var(--slate);
+  font-size: 14px;
+  line-height: 1.38;
 }
 
 .chart-panel {
@@ -1505,6 +2131,7 @@ footer span:first-child {
   .setup-grid,
   .lane-grid,
   .factor-grid,
+  .dataset-matrix,
   .literature-grid,
   .takeaway-grid,
   .compare-grid,
@@ -1522,6 +2149,12 @@ footer span:first-child {
     left: 34px;
     right: 34px;
   }
+
+  .explain-box {
+    left: 34px;
+    right: 34px;
+    font-size: 13px;
+  }
 }
 """
 
@@ -1538,11 +2171,31 @@ def build_manifest():
             "title": slide["title"],
             "kicker": slide["kicker"],
             "layout": slide["layout"],
+            "role": "main",
             "takeaway": slide["takeaway"],
+            "explanation": slide.get("explanation", ""),
+            "speaker_notes": slide.get("notes", []),
             "has_speaker_notes": bool(slide.get("notes")),
         }
         for slide in SLIDES
     ]
+
+
+def build_speaker_notes():
+    """Build a standalone speaker-notes markdown file.
+
+    Returns:
+        str: Markdown speaker notes grouped by slide.
+    """
+    sections = ["# CS6493 Speaker Notes", ""]
+    for slide in SLIDES:
+        sections.append(f"## {slide['id']:02d}. {slide['title']}")
+        sections.append(f"- Kicker: {slide['kicker']}")
+        sections.append(f"- Takeaway: {slide['takeaway']}")
+        for note in slide.get("notes", []):
+            sections.append(f"- {note}")
+        sections.append("")
+    return "\n".join(sections)
 
 
 def build_readme():
@@ -1562,6 +2215,7 @@ This folder contains an English classroom presentation based on `delivery/report
 - `runtime.js`: local copy of the html-ppt runtime for navigation, overview, notes, and presenter mode.
 - `{PPTX_NAME}`: editable PowerPoint deck generated with `python-pptx`.
 - `slide_manifest.json`: slide titles, layouts, and takeaways.
+- `speaker_notes.md`: standalone notes for rehearsal and presenter reference.
 - `build_deck.py`: single-source generator for the HTML, manifest, README, and PPTX.
 - `validate_deck.py`: validation helper for PPTX structure and 16:9 HTML screenshots.
 
@@ -1753,6 +2407,80 @@ def add_footer(slide, slide_data):
     )
 
 
+def add_explanation_box(slide, slide_data):
+    """Add the visible academic explanation box to a PowerPoint slide.
+
+    Args:
+        slide: PowerPoint slide object.
+        slide_data: Slide dictionary for the current slide.
+    """
+    explanation = slide_data.get("explanation", "")
+    if not explanation:
+        return
+    label, meta, accent = get_explanation_meta(slide_data)
+    add_shape(slide, MSO_SHAPE.RECTANGLE, 0.76, 6.18, 11.78, 0.6, "white", "line")
+    add_shape(slide, MSO_SHAPE.RECTANGLE, 0.76, 6.18, 0.06, 0.6, accent)
+    add_shape(slide, MSO_SHAPE.ROUNDED_RECTANGLE, 0.92, 6.27, 1.45, 0.16, f"soft_{accent}" if accent in {"blue", "teal", "amber", "green"} else "soft_blue")
+    add_text(
+        slide,
+        label.upper(),
+        0.98,
+        6.305,
+        1.28,
+        0.08,
+        size = 6,
+        bold = True,
+        fill = accent,
+        font = "Courier New",
+        align = PP_ALIGN.CENTER
+    )
+    add_text(
+        slide,
+        meta,
+        10.92,
+        6.305,
+        1.2,
+        0.08,
+        size = 6,
+        bold = True,
+        fill = "muted",
+        font = "Courier New",
+        align = PP_ALIGN.RIGHT
+    )
+    add_text(
+        slide,
+        explanation,
+        0.92,
+        6.48,
+        11.26,
+        0.16,
+        size = 7,
+        bold = False,
+        fill = "slate"
+    )
+
+
+def score_fill(score):
+    """Map a joint-score value to slide fill and font colors.
+
+    Args:
+        score: Joint-score value between zero and one.
+
+    Returns:
+        tuple: (fill color name, text color name)
+    """
+    band = score_band(score)
+    if band == "top":
+        return "soft_green", "green"
+    if band == "high":
+        return "soft_teal", "teal"
+    if band == "mid":
+        return "soft_blue", "blue"
+    if band == "low":
+        return "soft_amber", "amber"
+    return "soft_red", "red"
+
+
 def add_card(slide, card, x, y, width, height):
     """Add an editable card to a PowerPoint slide.
 
@@ -1768,8 +2496,11 @@ def add_card(slide, card, x, y, width, height):
     title = card.get("title", card.get("name", ""))
     body = card.get("body", card.get("short", ""))
     formula = card.get("formula")
-    if formula:
-        body = f"{body}\n{formula}"
+    formula_ppt = card.get("formula_ppt")
+    if formula_ppt:
+        body = f"{body}\n{formula_ppt}"
+    elif formula:
+        body = f"{body}\n{standard_formula(formula)}"
     add_shape(slide, MSO_SHAPE.RECTANGLE, x, y, width, height, "white", "line")
     add_shape(slide, MSO_SHAPE.RECTANGLE, x, y, width, 0.07, card_color)
     add_text(
@@ -2040,34 +2771,54 @@ def add_formula_layout(slide, slide_data):
         slide: PowerPoint slide object.
         slide_data: Slide dictionary with formula strings.
     """
-    add_shape(slide, MSO_SHAPE.RECTANGLE, 1.0, 2.12, 11.0, 2.75, "white", "line")
+    add_shape(slide, MSO_SHAPE.RECTANGLE, 1.0, 2.04, 11.0, 3.42, "white", "line")
     for index, formula in enumerate(slide_data["formula"]):
-        add_shape(slide, MSO_SHAPE.RECTANGLE, 1.35, 2.46 + index * 0.72, 10.3, 0.48, "paper", "line")
+        y = 2.26 + index * 0.92
+        add_shape(slide, MSO_SHAPE.RECTANGLE, 1.35, y, 10.3, 0.72, "paper", "line")
+        add_shape(slide, MSO_SHAPE.RECTANGLE, 1.35, y, 0.06, 0.72, "blue")
         add_text(
             slide,
-            formula,
-            1.56,
-            2.58 + index * 0.72,
+            formula["ppt"],
+            1.58,
+            y + 0.11,
             9.86,
-            0.22,
-            size = 16,
+            0.24,
+            size = 17,
             bold = True,
             fill = "ink",
-            font = "Courier New"
+            font = "Georgia"
         )
-    add_shape(slide, MSO_SHAPE.RECTANGLE, 2.02, 5.28, 8.92, 0.54, "soft_teal", "teal")
-    add_text(
-        slide,
-        "Correctness first; behavior only modifies correct samples.",
-        2.18,
-        5.43,
-        8.6,
-        0.22,
-        size = 13,
-        bold = True,
-        fill = "teal",
-        align = PP_ALIGN.CENTER
-    )
+        add_text(
+            slide,
+            formula["desc"],
+            1.58,
+            y + 0.43,
+            9.86,
+            0.2,
+            size = 8,
+            fill = "muted"
+        )
+    gap = 0.14
+    card_width = (11.0 - gap * 2) / 3
+    for index, item in enumerate(slide_data.get("definitions", [])):
+        row = index // 3
+        col = index % 3
+        x = 1.0 + col * (card_width + gap)
+        y = 5.58 + row * 0.28
+        add_shape(slide, MSO_SHAPE.RECTANGLE, x, y, card_width, 0.2, "soft_teal", "teal")
+        add_text(
+            slide,
+            f'{item["ppt"]}: {item["desc"]}',
+            x + 0.08,
+            y + 0.045,
+            card_width - 0.16,
+            0.1,
+            size = 6.5,
+            bold = True,
+            fill = "teal",
+            font = "Georgia",
+            align = PP_ALIGN.CENTER
+        )
 
 
 def add_joint_chart_layout(slide):
@@ -2085,7 +2836,7 @@ def add_joint_chart_layout(slide):
         Inches(0.9),
         Inches(2.05),
         Inches(10.95),
-        Inches(4.25),
+        Inches(3.82),
         chart_data
     )
     chart = chart_shape.chart
@@ -2103,6 +2854,82 @@ def add_joint_chart_layout(slide):
         series.format.fill.fore_color.rgb = rgb(color("blue" if series_index == 0 else "teal"))
 
 
+def add_dataset_matrix_layout(slide, slide_data):
+    """Add side-by-side dataset joint-score tables.
+
+    Args:
+        slide: PowerPoint slide object.
+        slide_data: Slide dictionary containing dataset matrix panels.
+    """
+    headers = [
+        "Method",
+        DATASET_LABELS["math500"],
+        DATASET_LABELS["gsm8k"],
+        DATASET_LABELS["aime2024"],
+    ]
+    table_width = 5.48
+    positions = [0.82, 6.03]
+    for panel_index, panel in enumerate(slide_data.get("panels", [])):
+        x = positions[panel_index]
+        accent = panel["accent"]
+        add_shape(slide, MSO_SHAPE.RECTANGLE, x, 2.08, table_width, 3.78, "white", "line")
+        add_shape(slide, MSO_SHAPE.RECTANGLE, x, 2.08, table_width, 0.08, accent)
+        add_text(
+            slide,
+            panel["title"],
+            x + 0.16,
+            2.22,
+            table_width - 0.32,
+            0.22,
+            size = 12,
+            bold = True,
+            fill = "ink"
+        )
+        shape = slide.shapes.add_table(
+            1 + len(panel["rows"]),
+            len(headers),
+            Inches(x + 0.12),
+            Inches(2.56),
+            Inches(table_width - 0.24),
+            Inches(2.96)
+        )
+        table = shape.table
+        for col, header in enumerate(headers):
+            cell = table.cell(0, col)
+            cell.fill.solid()
+            cell.fill.fore_color.rgb = rgb(color("paper"))
+            cell.text = header
+            for paragraph in cell.text_frame.paragraphs:
+                for run in paragraph.runs:
+                    run.font.name = "Courier New"
+                    run.font.size = Pt(7.5)
+                    run.font.bold = True
+                    run.font.color.rgb = rgb(color("slate"))
+        for row_index, row in enumerate(panel["rows"], start = 1):
+            method_cell = table.cell(row_index, 0)
+            method_cell.fill.solid()
+            method_cell.fill.fore_color.rgb = rgb(color("white"))
+            method_cell.text = row["method"]
+            for paragraph in method_cell.text_frame.paragraphs:
+                for run in paragraph.runs:
+                    run.font.name = "Arial"
+                    run.font.size = Pt(7.5)
+                    run.font.bold = True
+                    run.font.color.rgb = rgb(color("ink"))
+            for score_index, score in enumerate(row["scores"], start = 1):
+                cell = table.cell(row_index, score_index)
+                fill_name, text_name = score_fill(score)
+                cell.fill.solid()
+                cell.fill.fore_color.rgb = rgb(color(fill_name))
+                cell.text = f"{score:.3f}"
+                for paragraph in cell.text_frame.paragraphs:
+                    for run in paragraph.runs:
+                        run.font.name = "Courier New"
+                        run.font.size = Pt(7.5)
+                        run.font.bold = True
+                        run.font.color.rgb = rgb(color(text_name))
+
+
 def add_literature_table(slide):
     """Add an editable literature connection table.
 
@@ -2111,19 +2938,19 @@ def add_literature_table(slide):
     """
     rows = [
         [
-            "Prompting",
-            "CoT, Self-Consistency, Self-Refine, Plan-and-Solve",
-            "Structured reasoning trajectories",
+            "Prompting lineage",
+            "Wei et al. 2022; Wang et al. 2022, 2023; Madaan et al. 2024",
+            "Reasoning elicitation, multi-path voting, critique, and explicit planning",
         ],
         [
-            "Tool use",
-            "ToRA",
-            "Reasoning plus executable computation",
+            "Tool-grounded solving",
+            "Gou et al. 2023 (ToRA)",
+            "Reasoning can call reliable computation, observe it, and continue",
         ],
         [
-            "Efficiency",
-            "NoWait, Dynamic Early Exit",
-            "Reflection and long-reasoning cost",
+            "Efficiency-aware diagnosis",
+            "Wang et al. 2025; Yang et al. 2025",
+            "Reflection-token cost, overlong reasoning, and answer-aware stopping",
         ],
     ]
     shape = slide.shapes.add_table(
@@ -2184,6 +3011,8 @@ def add_slide_body(slide, slide_data):
         add_formula_layout(slide, slide_data)
     elif layout == "joint_chart":
         add_joint_chart_layout(slide)
+    elif layout == "dataset_matrix":
+        add_dataset_matrix_layout(slide, slide_data)
     elif layout == "literature":
         add_literature_table(slide)
     elif layout in {"cards", "method_cards", "dataset_cards", "comparison", "takeaways", "factors"}:
@@ -2217,6 +3046,7 @@ def build_pptx(path):
             add_shape(slide, MSO_SHAPE.RECTANGLE, 0.13, 0.0, 0.05, 7.5, "teal")
             add_header(slide, slide_data, total)
         add_slide_body(slide, slide_data)
+        add_explanation_box(slide, slide_data)
         if slide_data["layout"] != "cover":
             add_footer(slide, slide_data)
     presentation.save(path)
@@ -2236,6 +3066,7 @@ def write_outputs(out_dir, skip_pptx = False):
         out_dir / "slide_manifest.json",
         json.dumps(build_manifest(), indent = 2, ensure_ascii = False) + "\n"
     )
+    write_text(out_dir / "speaker_notes.md", build_speaker_notes())
     write_text(out_dir / "README.md", build_readme())
     runtime_source = Path("/Users/brench/.agents/skills/html-ppt/assets/runtime.js")
     runtime_target = out_dir / "runtime.js"
