@@ -427,4 +427,4 @@ CLAUDE.md
 .claude*
 models/*
 *.zip
-submission
+*submission
